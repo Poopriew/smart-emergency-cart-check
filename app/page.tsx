@@ -43,6 +43,7 @@ export default function SafeteTapePage() {
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [alertIndex, setAlertIndex] = useState(0)
+  const [checkInfo, setCheckInfo] = useState<any>(null)
 
   const today = new Date()
   const todayStr = today.toISOString().split('T')[0]
@@ -64,6 +65,16 @@ export default function SafeteTapePage() {
         .select('*')
         .order('days_remaining', { ascending: true })
       if (alertData) setAlerts(alertData)
+        // โหลด check วันนี้
+if (wardData) {
+  const { data: checkData } = await supabase
+    .from('daily_checks')
+    .select('*')
+    .eq('ward_id', wardData.id)
+    .eq('check_date', todayStr)
+    .single()
+  if (checkData) setCheckInfo(checkData)
+}
     }
     load()
   }, [])
@@ -270,25 +281,41 @@ export default function SafeteTapePage() {
         </div>
 
         {/* Last check info */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-          <p className="text-xs text-gray-400 uppercase tracking-wider font-medium mb-2">
-            สถานะล่าสุด
-          </p>
-          <div className="text-xs text-gray-500 space-y-1.5">
-            <div className="flex justify-between">
-              <span>การตรวจสอบครั้งล่าสุด</span>
-              <span className="font-medium text-gray-700">22 มิ.ย. 2568</span>
-            </div>
-            <div className="flex justify-between">
-              <span>ผู้ตรวจสอบ</span>
-              <span className="font-medium text-gray-700">พว. นวลพรรณ</span>
-            </div>
-            <div className="flex justify-between">
-              <span>ผลการตรวจ</span>
-              <span className="font-medium text-emerald-600">สมบูรณ์</span>
-            </div>
-          </div>
-        </div>
+<div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+  <p className="text-xs text-gray-400 uppercase tracking-wider font-medium mb-2">
+    สถานะล่าสุด
+  </p>
+  <div className="text-xs text-gray-500 space-y-1.5">
+    <div className="flex justify-between">
+      <span>การตรวจสอบครั้งล่าสุด</span>
+      <span className="font-medium text-gray-700">
+        {checkInfo
+          ? new Date(checkInfo.submitted_at ?? checkInfo.created_at)
+              .toLocaleDateString('th-TH')
+          : '—'}
+      </span>
+    </div>
+    <div className="flex justify-between">
+      <span>ผู้ตรวจสอบ</span>
+      <span className="font-medium text-gray-700">
+        {checkInfo?.inspector_name ?? '—'}
+      </span>
+    </div>
+    <div className="flex justify-between">
+      <span>ผลการตรวจ</span>
+      <span className={`font-medium ${
+        checkInfo?.tape_status
+          ? 'text-emerald-600'
+          : checkInfo
+          ? 'text-red-600'
+          : 'text-gray-400'}`}>
+        {checkInfo
+          ? checkInfo.tape_status ? 'สมบูรณ์' : 'พบปัญหา'
+          : 'ยังไม่ได้ตรวจ'}
+      </span>
+    </div>
+  </div>
+</div>
 
         {/* Error */}
         {error && (
