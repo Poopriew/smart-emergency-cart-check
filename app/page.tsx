@@ -51,11 +51,13 @@ export default function SafeteTapePage() {
   // ---- Load ward + expiry alerts ----
   useEffect(() => {
     async function load() {
+      const params = new URLSearchParams(window.location.search)
+      const wardCode = params.get('ward') || 'SGM1'
       // โหลด ward แรก (ICU1) — production ใช้ auth user เลือก ward
       const { data: wardData } = await supabase
         .from('wards')
         .select('*')
-        .eq('ward_code', 'ICU1')
+        .eq('ward_code', wardCode)
         .single()
       if (wardData) setWard(wardData)
 
@@ -90,7 +92,7 @@ if (wardData) {
 
   // ---- Save to Supabase ----
   async function handleSave() {
-    if (!ward || !inspectorName.trim()) {
+    if (!inspectorName.trim()) {
       setError('กรุณากรอกชื่อผู้ตรวจสอบ')
       return
     }
@@ -101,20 +103,34 @@ if (wardData) {
     setError(null)
     setSaving(true)
     try {
-      const { error: dbError } = await supabase
-        .from('daily_checks')
-        .upsert({
-          ward_id: ward.id,
-          check_date: todayStr,
-          inspector_name: inspectorName.trim(),
-          tape_status: tapeAnswer === 'yes',
-          tape_note: tapeNote.trim() || null,
-          status: tapeAnswer === 'yes' ? 'submitted' : 'draft',
-          submitted_at: tapeAnswer === 'yes' ? new Date().toISOString() : null,
-        }, { onConflict: 'ward_id,check_date' })
+      if (!ward?.id) {
+  setError('ไม่พบข้อมูล Ward กรุณารีเฟรชหน้าแล้วลองใหม่')
+  return
+}
 
-      if (dbError) throw dbError
+const { error: dbError } = await supabase
+  .from('daily_checks')
+  .upsert({
+    ward_id: ward.id,
+    check_date: todayStr,
+    inspector_name: inspectorName.trim(),
+    tape_status: tapeAnswer === 'yes',
+    tape_note: tapeNote.trim() || null,
+    status: tapeAnswer === 'yes' ? 'submitted' : 'draft',
+    submitted_at: tapeAnswer === 'yes' ? new Date().toISOString() : null,
+  }, { onConflict: 'ward_id,check_date' })
+
+if (dbError) throw dbError
       setSaved(true)
+      setTimeout(() => {
+  const p = new URLSearchParams(window.location.search)
+  const wc = p.get('ward') || 'SGM1'
+  if (tapeAnswer === 'yes') {
+    window.location.href = `/summary?ward=${wc}`
+  } else {
+    window.location.href = `/check?ward=${wc}`
+  }
+}, 800)
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'เกิดข้อผิดพลาด'
       setError(msg)

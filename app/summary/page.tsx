@@ -56,9 +56,11 @@ export default function SummaryPage() {
       setLoading(true)
       try {
         // โหลด ward
+        const params = new URLSearchParams(window.location.search)
+        const wCode = params.get('ward') || 'SGM1'
         const { data: ward } = await supabase
-          .from('wards').select('id, ward_name_th, ward_name_en')
-          .eq('ward_code', 'ICU1').single()
+         .from('wards').select('id, ward_name_th, ward_name_en')
+          .eq('ward_code', wCode).single()
         if (!ward) return
         setWardName(`${ward.ward_name_en} (${ward.ward_name_th})`)
 
@@ -359,7 +361,7 @@ export default function SummaryPage() {
 
       {/* CONFIRM BUTTON */}
       {!confirmed && (
-        <div className="px-4 py-3 bg-white border-t border-gray-100 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
+        <div className="fixed bottom-16 left-0 right-0 max-w-md mx-auto px-4 py-3 bg-white border-t border-gray-100 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] z-30 border-gray-100 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
           <button onClick={handleConfirm} disabled={confirming}
             className="w-full flex items-center justify-center gap-2
                        bg-emerald-700 text-white py-3.5 rounded-xl text-sm font-medium

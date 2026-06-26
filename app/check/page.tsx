@@ -14,7 +14,7 @@ interface CartItem {
 
 interface ItemResult {
   item_id: string
-  actual_qty: number      // ← เริ่มที่ standard_qty ทันที
+  actual_qty: number
   note: string
 }
 
@@ -27,22 +27,34 @@ const TABS = [
 ]
 
 export default function CheckPage() {
-  const [activeTab, setActiveTab]   = useState(0)
-  const [allItems, setAllItems]     = useState<CartItem[]>([])
-  const [results, setResults]       = useState<Record<string, ItemResult>>({})
-  const [saving, setSaving]         = useState(false)
-  const [saved, setSaved]           = useState(false)
-  const [error, setError]           = useState<string | null>(null)
-  const [wardId, setWardId]         = useState<string | null>(null)
-  const [checkId, setCheckId]       = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState(0)
+  const [allItems, setAllItems]   = useState<CartItem[]>([])
+  const [results, setResults]     = useState<Record<string, ItemResult>>({})
+  const [saving, setSaving]       = useState(false)
+  const [saved, setSaved]         = useState(false)
+  const [error, setError]         = useState<string | null>(null)
+  const [wardId, setWardId]       = useState<string | null>(null)
+  const [wardName, setWardName]   = useState('...')
+  const [checkId, setCheckId]     = useState<string | null>(null)
 
   const todayStr = new Date().toISOString().split('T')[0]
 
   useEffect(() => {
     async function load() {
+      // อ่าน ward จาก URL เช่น ?ward=SGM1
+      const params = new URLSearchParams(window.location.search)
+      const wCode = params.get('ward') || 'SGM1'
+
       const { data: ward } = await supabase
-        .from('wards').select('id').eq('ward_code', 'ICU1').single()
-      if (ward) setWardId(ward.id)
+        .from('wards')
+        .select('id, ward_name_en, ward_name_th')
+        .eq('ward_code', wCode)
+        .single()
+
+      if (ward) {
+        setWardId(ward.id)
+        setWardName(`${ward.ward_name_en} (${ward.ward_name_th})`)
+      }
 
       const { data: items } = await supabase
         .from('cart_items').select('*')
@@ -50,7 +62,6 @@ export default function CheckPage() {
 
       if (items) {
         setAllItems(items)
-        // ★ default = standard_qty ทุกรายการ
         const init: Record<string, ItemResult> = {}
         items.forEach((item: CartItem) => {
           init[item.id] = {
@@ -74,7 +85,6 @@ export default function CheckPage() {
 
   const tabItems = allItems.filter(i => i.drawer === TABS[activeTab].key)
 
-  // ★ ปุ่ม + / −
   function increment(itemId: string, max: number) {
     setResults(prev => ({
       ...prev,
@@ -95,12 +105,11 @@ export default function CheckPage() {
     return (results[item.id]?.actual_qty ?? item.standard_qty) < item.standard_qty
   }
 
-  // progress — นับรายการที่ "แตะแล้ว" คือ qty ≠ standard หรือผ่านแล้วทุกอัน
   const deficitCount  = allItems.filter(i => isDeficit(i)).length
   const deficitNoNote = allItems.filter(i => isDeficit(i) && !results[i.id]?.note.trim())
 
   async function handleSave() {
-    if (!wardId) { setError('ไม่พบข้อมูล Ward'); return }
+    if (!wardId) { setError('ไม่พบข้อมูล Ward กรุณารีเฟรชหน้า'); return }
     if (deficitNoNote.length > 0) {
       setError(`กรุณากรอกหมายเหตุสำหรับรายการที่ขาด ${deficitNoNote.length} รายการ`)
       return
@@ -137,7 +146,14 @@ export default function CheckPage() {
         .from('check_results')
         .upsert(rows, { onConflict: 'check_id,item_id' })
       if (resErr) throw resErr
+
       setSaved(true)
+      setTimeout(() => {
+        const p = new URLSearchParams(window.location.search)
+        const wc = p.get('ward') || 'SGM1'
+        window.location.href = `/summary?ward=${wc}`
+      }, 800)
+
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'เกิดข้อผิดพลาด')
     } finally {
@@ -158,9 +174,8 @@ export default function CheckPage() {
           </a>
           <div>
             <p className="text-xs opacity-70 uppercase tracking-wider">ตรวจเช็คอุปกรณ์ละเอียด</p>
-            <p className="text-base font-medium">
-              ICU 1 — {new Date().toLocaleDateString('th-TH')}
-            </p>
+            <p className="text-base font-medium">{wardName}</p>
+            <p className="text-xs opacity-60">{new Date().toLocaleDateString('th-TH')}</p>
           </div>
         </div>
 
@@ -185,18 +200,16 @@ export default function CheckPage() {
       {/* TAB BAR */}
       <div className="bg-emerald-900 flex overflow-x-auto">
         {TABS.map((tab, i) => {
-          const tabItems2 = allItems.filter(x => x.drawer === tab.key)
+          const tabItems2  = allItems.filter(x => x.drawer === tab.key)
           const tabDeficit = tabItems2.filter(x => isDeficit(x)).length
           return (
             <button key={tab.key} onClick={() => setActiveTab(i)}
               className={`flex-shrink-0 px-3 py-2.5 text-xs font-medium border-b-2 transition-colors
-                whitespace-nowrap relative
+                whitespace-nowrap
                 ${activeTab === i
                   ? 'border-emerald-300 text-white'
-                  : 'border-transparent text-emerald-400 hover:text-emerald-200'}`}
-            >
+                  : 'border-transparent text-emerald-400 hover:text-emerald-200'}`}>
               {tab.label}
-              {/* แสดง badge ถ้า tab นั้นมีของขาด */}
               {tabDeficit > 0 && (
                 <span className="ml-1 bg-red-500 text-white text-xs rounded-full
                                  w-4 h-4 inline-flex items-center justify-center leading-none">
@@ -214,21 +227,18 @@ export default function CheckPage() {
       </div>
 
       {/* ITEM LIST */}
-      <div className="flex-1 overflow-y-auto divide-y divide-gray-100 pb-16">
+      <div className="flex-1 overflow-y-auto divide-y divide-gray-100 pb-32">
         {tabItems.map(item => {
-          const r       = results[item.id]
-          const qty     = r?.actual_qty ?? item.standard_qty
+          const r      = results[item.id]
+          const qty    = r?.actual_qty ?? item.standard_qty
           const deficit = isDeficit(item)
 
           return (
             <div key={item.id}
               className={`bg-white px-4 py-3 transition-colors
-                ${deficit ? 'border-l-4 border-l-red-400' : 'border-l-4 border-l-emerald-400'}`}
-            >
-              {/* Top row: name + stepper */}
-              <div className="flex items-center gap-3">
+                ${deficit ? 'border-l-4 border-l-red-400' : 'border-l-4 border-l-emerald-400'}`}>
 
-                {/* Item info */}
+              <div className="flex items-center gap-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-800 leading-tight truncate">
                     {item.item_name_en}
@@ -236,7 +246,6 @@ export default function CheckPage() {
                   {item.item_name_th && (
                     <p className="text-xs text-gray-400 mt-0.5">{item.item_name_th}</p>
                   )}
-                  {/* มาตรฐาน */}
                   <p className="text-xs text-gray-400 mt-1">
                     มาตรฐาน:
                     <span className="font-semibold text-gray-600 ml-1">
@@ -245,39 +254,22 @@ export default function CheckPage() {
                   </p>
                 </div>
 
-                {/* ★ STEPPER: − [qty] + */}
-                <div className="flex items-center gap-0 flex-shrink-0">
-                  {/* ปุ่ม − */}
-                  <button
-                    onClick={() => decrement(item.id)}
+                {/* STEPPER */}
+                <div className="flex items-center flex-shrink-0">
+                  <button onClick={() => decrement(item.id)}
                     className={`w-9 h-9 rounded-l-xl flex items-center justify-center
                       text-lg font-bold transition-colors active:scale-95
-                      ${deficit
-                        ? 'bg-red-100 text-red-600 hover:bg-red-200'
-                        : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}
-                  >
+                      ${deficit ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-700'}`}>
                     −
                   </button>
-
-                  {/* แสดงจำนวน */}
-                  <div className={`w-12 h-9 flex items-center justify-center
-                    text-sm font-bold border-y
-                    ${deficit
-                      ? 'bg-red-50 text-red-700 border-red-200'
-                      : 'bg-emerald-50 text-emerald-800 border-emerald-200'}`}
-                  >
+                  <div className={`w-12 h-9 flex items-center justify-center text-sm font-bold border-y
+                    ${deficit ? 'bg-red-50 text-red-700 border-red-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'}`}>
                     {qty}
                   </div>
-
-                  {/* ปุ่ม + */}
-                  <button
-                    onClick={() => increment(item.id, item.standard_qty)}
+                  <button onClick={() => increment(item.id, item.standard_qty)}
                     className={`w-9 h-9 rounded-r-xl flex items-center justify-center
                       text-lg font-bold transition-colors active:scale-95
-                      ${deficit
-                        ? 'bg-red-100 text-red-600 hover:bg-red-200'
-                        : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}
-                  >
+                      ${deficit ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-700'}`}>
                     +
                   </button>
                 </div>
@@ -286,73 +278,49 @@ export default function CheckPage() {
               {/* Status badge */}
               <div className="mt-2 flex items-center gap-2">
                 {deficit ? (
-                  <span className="inline-flex items-center gap-1 text-xs
-                    bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                        d="M12 9v3.75m9.303 3.376c.866 1.5-.217 3.374-1.948 3.374H4.645c-1.73 0-2.813-1.874-1.948-3.374L10.051 3.378c.866-1.5 3.032-1.5 3.898 0l6.354 11.748ZM12 15.75h.007v.008H12v-.008Z"/>
-                    </svg>
-                    ขาด {item.standard_qty - qty} {item.unit}
+                  <span className="inline-flex items-center gap-1 text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
+                    ⚠️ ขาด {item.standard_qty - qty} {item.unit}
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 text-xs
-                    bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="m4.5 12.75 6 6 9-13.5"/>
-                    </svg>
-                    ครบ {item.unit}
+                  <span className="inline-flex items-center gap-1 text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+                    ✓ ครบ {item.unit}
                   </span>
                 )}
                 {qty > item.standard_qty && (
                   <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-                    เกินมาตรฐาน +{qty - item.standard_qty}
+                    เกิน +{qty - item.standard_qty}
                   </span>
                 )}
               </div>
 
-              {/* Deficit note — บังคับถ้าของขาด */}
+              {/* Deficit note */}
               {deficit && (
                 <div className="mt-2 bg-red-50 border border-red-100 rounded-xl p-3">
-                  <p className="text-xs text-red-600 font-medium mb-1.5 flex items-center gap-1">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                        d="M12 9v3.75m9.303 3.376c.866 1.5-.217 3.374-1.948 3.374H4.645c-1.73 0-2.813-1.874-1.948-3.374L10.051 3.378c.866-1.5 3.032-1.5 3.898 0l6.354 11.748ZM12 15.75h.007v.008H12v-.008Z"/>
-                    </svg>
-                    บังคับกรอกหมายเหตุ
-                  </p>
-                  <textarea
-                    rows={2}
-                    value={r?.note ?? ''}
+                  <p className="text-xs text-red-600 font-medium mb-1.5">⚠️ บังคับกรอกหมายเหตุ</p>
+                  <textarea rows={2} value={r?.note ?? ''}
                     onChange={e => updateNote(item.id, e.target.value)}
                     placeholder="เช่น รอกล่องยาเติมจากคลัง / กำลังดำเนินการ..."
                     className="w-full text-xs border border-red-200 rounded-lg px-3 py-2
                                placeholder:text-red-300 focus:outline-none focus:ring-2
-                               focus:ring-red-400 bg-white text-gray-800 resize-none"
-                  />
+                               focus:ring-red-400 bg-white text-gray-800 resize-none"/>
                 </div>
               )}
             </div>
           )
         })}
 
-        {/* Tab nav helper */}
+        {/* Tab nav */}
         <div className="flex justify-between px-4 py-3 bg-gray-50">
           <button onClick={() => setActiveTab(i => Math.max(0, i - 1))}
             disabled={activeTab === 0}
             className="flex items-center gap-1 text-xs text-gray-500 disabled:opacity-30">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.75 19.5 8.25 12l7.5-7.5"/>
-            </svg>
-            {activeTab > 0 ? TABS[activeTab - 1].label : ''}
+            ← {activeTab > 0 ? TABS[activeTab - 1].label : ''}
           </button>
           <span className="text-xs text-gray-400">{activeTab + 1} / {TABS.length}</span>
           <button onClick={() => setActiveTab(i => Math.min(TABS.length - 1, i + 1))}
             disabled={activeTab === TABS.length - 1}
             className="flex items-center gap-1 text-xs text-gray-500 disabled:opacity-30">
-            {activeTab < TABS.length - 1 ? TABS[activeTab + 1].label : ''}
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m8.25 4.5 7.5 7.5-7.5 7.5"/>
-            </svg>
+            {activeTab < TABS.length - 1 ? TABS[activeTab + 1].label : ''} →
           </button>
         </div>
       </div>
@@ -365,37 +333,24 @@ export default function CheckPage() {
       )}
       {saved && (
         <div className="mx-4 mb-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3
-                        text-xs text-emerald-700 flex items-center gap-2">
-          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="m4.5 12.75 6 6 9-13.5"/>
-          </svg>
-          บันทึกผลการตรวจเช็คสำเร็จแล้ว!
+                        text-xs text-emerald-700">
+          ✓ บันทึกผลการตรวจเช็คสำเร็จแล้ว!
         </div>
       )}
 
       {/* SAVE BUTTON */}
-      <div className="px-4 py-3 bg-white border-t border-gray-100 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
+      <div className="fixed bottom-16 left-0 right-0 max-w-md mx-auto px-4 py-3 bg-white
+                      border-t border-gray-100 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] z-30">
         {deficitCount > 0 && deficitNoNote.length > 0 && (
           <p className="text-xs text-center text-red-500 mb-2">
-            กรุณากรอกหมายเหตุสำหรับรายการที่ขาดก่อนบันทึก ({deficitNoNote.length} รายการ)
+            กรุณากรอกหมายเหตุก่อนบันทึก ({deficitNoNote.length} รายการ)
           </p>
         )}
         <button onClick={handleSave} disabled={saving || saved}
           className="w-full flex items-center justify-center gap-2 bg-emerald-700 text-white
                      py-3.5 rounded-xl text-sm font-medium shadow-sm active:scale-95
                      transition-all disabled:opacity-60 disabled:cursor-not-allowed">
-          {saving ? (
-            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-            </svg>
-          ) : (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/>
-            </svg>
-          )}
-          {saved ? 'บันทึกแล้ว ✓' : saving ? 'กำลังบันทึก...' : 'บันทึกผลการตรวจเช็คละเอียด'}
+          {saving ? '⏳ กำลังบันทึก...' : saved ? '✓ บันทึกแล้ว' : '📤 บันทึกผลการตรวจเช็คละเอียด'}
         </button>
       </div>
 
