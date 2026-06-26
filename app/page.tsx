@@ -182,7 +182,7 @@ if (wardData) {
       )}
 
       {/* ===== BODY ===== */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-16">
 
         {/* Inspector name */}
         <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
@@ -390,7 +390,7 @@ if (wardData) {
       )}
 
       {/* ===== BOTTOM NAV ===== */}
-      <nav className="flex bg-white border-t border-gray-100">
+      <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto flex bg-white border-t border-gray-100 z-40">
         {[
           { icon: '🏠', label: 'หน้าหลัก', href: '/', active: true },
           { icon: '📋', label: 'ตรวจเช็ค', href: '/check', active: false },

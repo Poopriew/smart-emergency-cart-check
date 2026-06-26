@@ -214,7 +214,7 @@ export default function CheckPage() {
       </div>
 
       {/* ITEM LIST */}
-      <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
+      <div className="flex-1 overflow-y-auto divide-y divide-gray-100 pb-16">
         {tabItems.map(item => {
           const r       = results[item.id]
           const qty     = r?.actual_qty ?? item.standard_qty
@@ -400,7 +400,7 @@ export default function CheckPage() {
       </div>
 
       {/* BOTTOM NAV */}
-      <nav className="flex bg-white border-t border-gray-100">
+      <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto flex bg-white border-t border-gray-100 z-40">
         {[
           { icon: '🏠', label: 'หน้าหลัก', href: '/' },
           { icon: '📋', label: 'ตรวจเช็ค', href: '/check', active: true },

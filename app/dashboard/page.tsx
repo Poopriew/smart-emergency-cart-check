@@ -227,7 +227,7 @@ export default function DashboardPage() {
       </div>
 
       {/* WARD LIST */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto pb-16">
         <div className="px-4 py-2 flex items-center justify-between">
           <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">
             หอผู้ป่วย (Ward)
@@ -343,7 +343,7 @@ export default function DashboardPage() {
       </div>
 
       {/* BOTTOM NAV */}
-      <nav className="flex bg-white border-t border-gray-100">
+      <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto flex bg-white border-t border-gray-100 z-40">
         {[
           { icon: '🏠', label: 'หน้าหลัก', href: '/' },
           { icon: '📋', label: 'ตรวจเช็ค', href: '/check' },

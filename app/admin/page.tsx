@@ -214,7 +214,7 @@ export default function AdminPage() {
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto pb-16">
 
         {/* ===== WARDS TAB ===== */}
         {tab === 'wards' && (
@@ -475,7 +475,7 @@ export default function AdminPage() {
       )}
 
       {/* BOTTOM NAV */}
-      <nav className="flex bg-white border-t border-gray-100">
+      <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto flex bg-white border-t border-gray-100 z-40">
         {[
           { icon: '🏠', label: 'หน้าหลัก',  href: '/' },
           { icon: '📋', label: 'ตรวจเช็ค',  href: '/check' },
