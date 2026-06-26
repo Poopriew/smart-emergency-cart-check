@@ -182,7 +182,7 @@ if (wardData) {
       )}
 
       {/* ===== BODY ===== */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-16">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-20">
 
         {/* Inspector name */}
         <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
@@ -338,7 +338,7 @@ if (wardData) {
 
       {/* ===== BOTTOM ACTION BAR ===== */}
       {tapeAnswer !== null && (
-        <div className="border-t border-gray-100 bg-white px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
+        <div className="fixed bottom-16 left-0 right-0 max-w-md mx-auto border-t border-gray-100 bg-white px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
           {tapeAnswer === 'yes' ? (
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5 flex-1">
