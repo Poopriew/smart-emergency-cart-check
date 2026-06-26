@@ -202,7 +202,7 @@ export default function SummaryPage() {
               : deficits.length > 0
               ? 'bg-red-500 text-white'
               : 'bg-emerald-600 text-white'}`}>
-            {confirmed ? '🔒 ยืนยันแล้ว' : deficits.length > 0 ? '⚠️ มีของขาด' : '✓ สมบูรณ์'}
+            {confirmed ? '🔒 ยืนยันแล้ว' : deficits.length > 0 ? '⚠️ มีของไม่ครบ' : '✓ สมบูรณ์'}
           </span>
         </div>
 

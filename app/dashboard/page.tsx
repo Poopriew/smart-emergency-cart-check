@@ -177,7 +177,7 @@ export default function DashboardPage() {
           <div className="flex-1 space-y-2.5">
             <LegendItem color="bg-green-500"  label="เช็คสมบูรณ์"      count={okCount}      total={wards.length} />
             <LegendItem color="bg-red-500"    label="ยังไม่ได้เช็ค"    count={pendingCount}  total={wards.length} />
-            <LegendItem color="bg-yellow-400" label="ตู้มีปัญหา/ของขาด" count={deficitCount} total={wards.length} isTriangle />
+            <LegendItem color="bg-yellow-400" label="ล้อไม่สมบูรณ์" count={deficitCount} total={wards.length} isTriangle />
           </div>
         </div>
       </div>
@@ -187,7 +187,7 @@ export default function DashboardPage() {
         {[
           { label: 'สมบูรณ์',     count: okCount,      color: 'bg-emerald-50 border-emerald-200 text-emerald-700', active: filterStatus === 'ok',      key: 'ok' },
           { label: 'ยังไม่ตรวจ', count: pendingCount,  color: 'bg-gray-50 border-gray-200 text-gray-600',          active: filterStatus === 'pending', key: 'pending' },
-          { label: 'ของขาด',     count: deficitCount,  color: 'bg-red-50 border-red-200 text-red-700',             active: filterStatus === 'deficit', key: 'deficit' },
+          { label: 'ของไม่ครบ',     count: deficitCount,  color: 'bg-red-50 border-red-200 text-red-700',             active: filterStatus === 'deficit', key: 'deficit' },
           { label: 'ทั้งหมด',    count: wards.length,  color: 'bg-blue-50 border-blue-200 text-blue-700',          active: filterStatus === 'all',     key: 'all' },
         ].map(s => (
           <button key={s.key}
@@ -312,7 +312,7 @@ export default function DashboardPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                             d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
                         </svg>
-                        ของขาด
+                        ของไม่ครบ
                       </span>
                     )}
                     {st === 'pending' && (
