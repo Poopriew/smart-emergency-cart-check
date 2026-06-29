@@ -44,17 +44,17 @@ function DonutChart({ ok, deficit, pending }: { ok: number; deficit: number; pen
   const cy = 70
   const circ = 2 * Math.PI * r
 
-  function slice(value: number, offset: number, color: string, idx: number) {
+  function makeArc(value: number, offset: number, color: string) {
     if (value === 0) return null
     const pct = value / total
     const dash = pct * circ
     const gap  = circ - dash
     return (
-      <circle key={idx} cx={cx} cy={cy} r={r} fill="none" stroke={color}
-        strokeWidth="22" strokeDasharray={`${dash} ${gap}`}
-        strokeDashoffset={-offset}
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke={color}
+        strokeWidth="22"
+        strokeDasharray={`${dash} ${gap}`}
+        strokeDashoffset={-(offset)}
         transform={`rotate(-90 ${cx} ${cy})`}
-        style={{ transition: 'stroke-dasharray 0.6s ease' }}
       />
     )
   }
@@ -64,12 +64,10 @@ function DonutChart({ ok, deficit, pending }: { ok: number; deficit: number; pen
 
   return (
     <svg viewBox="0 0 140 140" className="w-36 h-36 flex-shrink-0">
-      {/* bg ring */}
       <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f0fdf4" strokeWidth="22"/>
-      {slice(ok,      0,                   '#22c55e', 0)}
-      {slice(deficit, okDash,              '#ef4444', 1)}
-      {slice(pending, okDash + deficitDash,'#d1d5db', 2)}
-      {/* center text */}
+      {makeArc(ok,      0,                    '#22c55e')}
+      {makeArc(deficit, okDash,               '#ef4444')}
+      {makeArc(pending, okDash + deficitDash, '#d1d5db')}
       <text x={cx} y={cy - 6} textAnchor="middle" fontSize="20" fontWeight="600" fill="#1f2937">{total}</text>
       <text x={cx} y={cy + 12} textAnchor="middle" fontSize="9" fill="#6b7280">หอผู้ป่วย</text>
     </svg>
