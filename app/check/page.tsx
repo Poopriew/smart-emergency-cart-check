@@ -19,11 +19,11 @@ interface ItemResult {
 }
 
 const TABS = [
-  { key: 'top',     label: 'ชั้นบนสุด',  sub: 'ชั้นบนสุด (Defibrillator & เครื่องมือหลัก)' },
-  { key: 'drawer1', label: 'ลิ้นชัก 1',  sub: 'ลิ้นชักที่ 1 (ยาฉุกเฉิน)' },
-  { key: 'drawer2', label: 'ลิ้นชัก 2',  sub: 'ลิ้นชักที่ 2 (อุปกรณ์ทางเดินหายใจ)' },
-  { key: 'drawer3', label: 'ลิ้นชัก 3',  sub: 'ลิ้นชักที่ 3 (น้ำเกลือ / Fluid)' },
-  { key: 'drawer4', label: 'ลิ้นชัก 4',  sub: 'ลิ้นชักที่ 4 (อุปกรณ์เบ็ดเตล็ด)' },
+  { key: 'top',     label: 'ชั้นบนสุด',  sub: 'ชั้นบนสุด' },
+  { key: 'drawer1', label: 'ลิ้นชัก 1',  sub: 'ลิ้นชักที่ 1' },
+  { key: 'drawer2', label: 'ลิ้นชัก 2',  sub: 'ลิ้นชักที่ 2' },
+  { key: 'drawer3', label: 'ลิ้นชัก 3',  sub: 'ลิ้นชักที่ 3' },
+  { key: 'drawer4', label: 'ลิ้นชัก 4',  sub: 'ลิ้นชักที่ 4' },
 ]
 
 export default function CheckPage() {

@@ -25,10 +25,10 @@ interface CheckInfo {
 
 const DRAWER_LABEL: Record<string, string> = {
   top: 'ชั้นบนสุด',
-  drawer1: 'ลิ้นชัก 1 (ยาฉุกเฉิน)',
-  drawer2: 'ลิ้นชัก 2 (ทางเดินหายใจ)',
-  drawer3: 'ลิ้นชัก 3 (น้ำเกลือ)',
-  drawer4: 'ลิ้นชัก 4 (เบ็ดเตล็ด)',
+  drawer1: 'ลิ้นชัก 1',
+  drawer2: 'ลิ้นชัก 2',
+  drawer3: 'ลิ้นชัก 3',
+  drawer4: 'ลิ้นชัก 4',
 }
 
 function formatThaiDateTime(iso: string) {
