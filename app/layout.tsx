@@ -37,17 +37,16 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="EmCart" />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} bg-gray-50 min-h-screen`}>
-        <div className="max-w-md mx-auto min-h-screen shadow-xl">
+      <body className={`${geistSans.variable} ${geistMono.variable} bg-gray-100 overflow-hidden h-screen`}>
+        {/* outer wrapper — จำกัดความกว้างและ fix กับหน้าจอ */}
+        <div className="relative max-w-md mx-auto h-screen overflow-hidden bg-gray-50 shadow-2xl">
           {children}
         </div>
         <script dangerouslySetInnerHTML={{
           __html: `
             if ('serviceWorker' in navigator) {
               window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js')
-                  .then(function(reg) { console.log('SW registered'); })
-                  .catch(function(err) { console.log('SW error:', err); });
+                navigator.serviceWorker.register('/sw.js');
               });
             }
           `

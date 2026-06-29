@@ -343,7 +343,7 @@ export default function DashboardPage() {
       </div>
 
       {/* BOTTOM NAV */}
-      <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto flex bg-white border-t border-gray-100 z-40">
+      <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto flex bg-white border-t border-gray-100 z-40 h-16">
         {[
           { icon: '🏠', label: 'หน้าหลัก', href: '/' },
           { icon: '📋', label: 'ตรวจเช็ค', href: '/check' },
@@ -351,11 +351,11 @@ export default function DashboardPage() {
           { icon: '📊', label: 'แดชบอร์ด', href: '/dashboard', active: true },
         ].map(item => (
           <a key={item.href} href={item.href}
-            className={`flex-1 flex flex-col items-center py-2 gap-0.5 text-xs border-t-2
+            className={`flex-1 flex flex-col items-center py-3 gap-1 text-sm border-t-2
               ${'active' in item && item.active
                 ? 'border-emerald-700 text-emerald-700'
                 : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
-            <span className="text-lg leading-none">{item.icon}</span>
+            <span className="text-2xl leading-none">{item.icon}</span>
             {item.label}
           </a>
         ))}
