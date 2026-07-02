@@ -173,9 +173,9 @@ export default function DashboardPage() {
           <DonutChart ok={okCount} deficit={deficitCount} pending={pendingCount} />
 
           <div className="flex-1 space-y-2.5">
-            <LegendItem color="bg-green-500"  label="เช็คสมบูรณ์"      count={okCount}      total={wards.length} />
-            <LegendItem color="bg-red-500"    label="ยังไม่ได้เช็ค"    count={pendingCount}  total={wards.length} />
-            <LegendItem color="bg-yellow-400" label="ล้อไม่สมบูรณ์" count={deficitCount} total={wards.length} isTriangle />
+            <LegendItem color="bg-green-500" label="เช็คสมบูรณ์"   count={okCount}      total={wards.length} />
+            <LegendItem color="bg-red-500"   label="ของไม่ครบ"     count={deficitCount} total={wards.length} />
+            <LegendItem color="bg-gray-300"  label="ยังไม่ได้เช็ค" count={pendingCount} total={wards.length} />
           </div>
         </div>
       </div>
