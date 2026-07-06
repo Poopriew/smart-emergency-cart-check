@@ -213,7 +213,7 @@ if (wardData) {
       )}
 
       {/* ===== BODY ===== */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-20">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-40">
 
         {/* Inspector name */}
         <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
