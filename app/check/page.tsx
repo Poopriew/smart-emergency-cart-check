@@ -36,6 +36,8 @@ export default function CheckPage() {
   const [wardId, setWardId]       = useState<string | null>(null)
   const [wardName, setWardName]   = useState('...')
   const [checkId, setCheckId]     = useState<string | null>(null)
+  const [existingCheck, setExistingCheck] = useState<any>(null)
+  const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false)
 
   const todayStr = new Date().toISOString().split('T')[0]
 
@@ -75,9 +77,12 @@ export default function CheckPage() {
 
       if (ward) {
         const { data: check } = await supabase
-          .from('daily_checks').select('id')
+          .from('daily_checks').select('id, status, inspector_name, submitted_at')
           .eq('ward_id', ward.id).eq('check_date', todayStr).single()
-        if (check) setCheckId(check.id)
+        if (check) {
+          setCheckId(check.id)
+          setExistingCheck(check)
+        }
       }
     }
     load()
@@ -108,23 +113,29 @@ export default function CheckPage() {
   const deficitCount  = allItems.filter(i => isDeficit(i)).length
   const deficitNoNote = allItems.filter(i => isDeficit(i) && !results[i.id]?.note.trim())
 
-  async function handleSave() {
+  async function handleSave(force = false) {
     if (!wardId) { setError('ไม่พบข้อมูล Ward กรุณารีเฟรชหน้า'); return }
     if (deficitNoNote.length > 0) {
       setError(`กรุณากรอกหมายเหตุสำหรับรายการที่ขาด ${deficitNoNote.length} รายการ`)
       return
     }
+
+    if (!force && existingCheck && (existingCheck.status === 'submitted' || existingCheck.status === 'confirmed')) {
+      setShowDuplicateConfirm(true)
+      return
+    }
+
     setError(null)
     setSaving(true)
     try {
       let currentCheckId = checkId
-      if (!currentCheckId) {
+      if (!existingCheck || existingCheck.status !== 'confirmed') {
         const { data: check, error: err } = await supabase
           .from('daily_checks')
           .upsert({
             ward_id: wardId,
             check_date: todayStr,
-            inspector_name: 'พว. ผู้ตรวจ',
+            inspector_name: existingCheck?.inspector_name || 'พว. ผู้ตรวจ',
             status: 'submitted',
             submitted_at: new Date().toISOString(),
           }, { onConflict: 'ward_id,check_date' })
@@ -148,6 +159,7 @@ export default function CheckPage() {
       if (resErr) throw resErr
 
       setSaved(true)
+      setShowDuplicateConfirm(false)
       setTimeout(() => {
         const p = new URLSearchParams(window.location.search)
         const wc = p.get('ward') || 'SGM1'
@@ -346,13 +358,43 @@ export default function CheckPage() {
             กรุณากรอกหมายเหตุก่อนบันทึก ({deficitNoNote.length} รายการ)
           </p>
         )}
-        <button onClick={handleSave} disabled={saving || saved}
+        <button onClick={() => handleSave()} disabled={saving || saved}
           className="w-full flex items-center justify-center gap-2 bg-emerald-700 text-white
                      py-3.5 rounded-xl text-sm font-medium shadow-sm active:scale-95
                      transition-all disabled:opacity-60 disabled:cursor-not-allowed">
           {saving ? '⏳ กำลังบันทึก...' : saved ? '✓ บันทึกแล้ว' : '📤 บันทึกผลการตรวจเช็คละเอียด'}
         </button>
       </div>
+
+      {/* ===== DUPLICATE CHECK CONFIRM MODAL ===== */}
+      {showDuplicateConfirm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-6">
+          <div className="bg-white rounded-2xl p-5 max-w-sm w-full shadow-xl">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xl">⚠️</span>
+              <p className="text-sm font-semibold text-gray-800">วันนี้มีการตรวจสอบไปแล้ว</p>
+            </div>
+            <p className="text-xs text-gray-500 leading-relaxed mb-4">
+              หอผู้ป่วยนี้มีการบันทึกผลตรวจของวันนี้ไปแล้ว
+              โดย <span className="font-medium text-gray-700">{existingCheck?.inspector_name ?? '-'}</span>
+              {existingCheck?.submitted_at && (
+                <> เมื่อเวลา {new Date(existingCheck.submitted_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.</>
+              )}
+              <br />ต้องการบันทึกข้อมูลซ้ำแทนที่ของเดิมหรือไม่?
+            </p>
+            <div className="flex gap-2">
+              <button onClick={() => setShowDuplicateConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-600">
+                ยกเลิก
+              </button>
+              <button onClick={() => handleSave(true)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-red-600 text-white">
+                บันทึกซ้ำ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* BOTTOM NAV */}
       <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto flex bg-white border-t border-gray-100 z-40 h-16">

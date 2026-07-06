@@ -44,6 +44,7 @@ export default function SafeteTapePage() {
   const [error, setError] = useState<string | null>(null)
   const [alertIndex, setAlertIndex] = useState(0)
   const [checkInfo, setCheckInfo] = useState<any>(null)
+  const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false)
 
   const today = new Date()
   const todayStr = today.toISOString().split('T')[0]
@@ -91,7 +92,7 @@ if (wardData) {
   }, [alerts])
 
   // ---- Save to Supabase ----
-  async function handleSave() {
+  async function handleSave(force = false) {
     if (!inspectorName.trim()) {
       setError('กรุณากรอกชื่อผู้ตรวจสอบ')
       return
@@ -101,36 +102,50 @@ if (wardData) {
       return
     }
     setError(null)
+
+    if (!force && checkInfo && (checkInfo.status === 'submitted' || checkInfo.status === 'confirmed')) {
+      setShowDuplicateConfirm(true)
+      return
+    }
+
     setSaving(true)
     try {
       if (!ward?.id) {
-  setError('ไม่พบข้อมูล Ward กรุณารีเฟรชหน้าแล้วลองใหม่')
-  return
-}
+        setError('ไม่พบข้อมูล Ward กรุณารีเฟรชหน้าแล้วลองใหม่')
+        return
+      }
 
-const { error: dbError } = await supabase
-  .from('daily_checks')
-  .upsert({
-    ward_id: ward.id,
-    check_date: todayStr,
-    inspector_name: inspectorName.trim(),
-    tape_status: tapeAnswer === 'yes',
-    tape_note: tapeNote.trim() || null,
-    status: tapeAnswer === 'yes' ? 'submitted' : 'draft',
-    submitted_at: tapeAnswer === 'yes' ? new Date().toISOString() : null,
-  }, { onConflict: 'ward_id,check_date' })
+      const { data: savedCheck, error: dbError } = await supabase
+        .from('daily_checks')
+        .upsert({
+          ward_id: ward.id,
+          check_date: todayStr,
+          inspector_name: inspectorName.trim(),
+          tape_status: tapeAnswer === 'yes',
+          tape_note: tapeNote.trim() || null,
+          status: tapeAnswer === 'yes' ? 'submitted' : 'draft',
+          submitted_at: tapeAnswer === 'yes' ? new Date().toISOString() : null,
+        }, { onConflict: 'ward_id,check_date' })
+        .select('id')
+        .single()
 
-if (dbError) throw dbError
+      if (dbError) throw dbError
+
+      if (tapeAnswer === 'yes' && savedCheck?.id) {
+        await supabase.from('check_results').delete().eq('check_id', savedCheck.id)
+      }
+
       setSaved(true)
+      setShowDuplicateConfirm(false)
       setTimeout(() => {
-  const p = new URLSearchParams(window.location.search)
-  const wc = p.get('ward') || 'SGM1'
-  if (tapeAnswer === 'yes') {
-    window.location.href = `/summary?ward=${wc}`
-  } else {
-    window.location.href = `/check?ward=${wc}`
-  }
-}, 800)
+        const p = new URLSearchParams(window.location.search)
+        const wc = p.get('ward') || 'SGM1'
+        if (tapeAnswer === 'yes') {
+          window.location.href = `/summary?ward=${wc}`
+        } else {
+          window.location.href = `/check?ward=${wc}`
+        }
+      }, 800)
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'เกิดข้อผิดพลาด'
       setError(msg)
@@ -352,6 +367,36 @@ if (dbError) throw dbError
 
       </div>
 
+      {/* ===== DUPLICATE CHECK CONFIRM MODAL ===== */}
+      {showDuplicateConfirm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-6">
+          <div className="bg-white rounded-2xl p-5 max-w-sm w-full shadow-xl">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xl">⚠️</span>
+              <p className="text-sm font-semibold text-gray-800">วันนี้มีการตรวจสอบไปแล้ว</p>
+            </div>
+            <p className="text-xs text-gray-500 leading-relaxed mb-4">
+              หอผู้ป่วยนี้มีการบันทึกผลตรวจของวันที่ {formatThaiDate(today)} ไปแล้ว
+              โดย <span className="font-medium text-gray-700">{checkInfo?.inspector_name ?? '-'}</span>
+              {checkInfo?.submitted_at && (
+                <> เมื่อเวลา {new Date(checkInfo.submitted_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.</>
+              )}
+              <br />ต้องการบันทึกข้อมูลซ้ำแทนที่ของเดิมหรือไม่?
+            </p>
+            <div className="flex gap-2">
+              <button onClick={() => setShowDuplicateConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-600">
+                ยกเลิก
+              </button>
+              <button onClick={() => handleSave(true)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-red-600 text-white">
+                บันทึกซ้ำ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ===== BOTTOM ACTION BAR ===== */}
       {tapeAnswer !== null && (
         <div className="fixed bottom-16 left-0 right-0 max-w-md mx-auto border-t border-gray-100 bg-white px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
@@ -362,7 +407,7 @@ if (dbError) throw dbError
                 <span className="text-sm font-medium text-emerald-700">พร้อมใช้งาน</span>
               </div>
               <button
-                onClick={handleSave}
+                onClick={() => handleSave()}
                 disabled={saving || saved}
                 className="flex items-center gap-2 bg-emerald-700 text-white px-5 py-2.5 rounded-xl
                            text-sm font-medium shadow-sm active:scale-95 transition-all
@@ -389,7 +434,7 @@ if (dbError) throw dbError
                 <span className="text-sm font-medium text-red-700">พบปัญหา — ต้องตรวจเช็คละเอียด</span>
               </div>
               <button
-                onClick={handleSave}
+                onClick={() => handleSave()}
                 disabled={saving || !tapeNote.trim()}
                 className="w-full flex items-center justify-center gap-2 bg-red-600 text-white
                            px-4 py-3 rounded-xl text-sm font-medium shadow-sm active:scale-95
