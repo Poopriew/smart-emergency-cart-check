@@ -122,6 +122,7 @@ export default function AdminPage() {
   const [saving, setSaving]   = useState(false)
   const [msg, setMsg]         = useState<{ text: string; type: 'ok' | 'err' } | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string; type: 'ward' | 'item' } | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const [editWard, setEditWard]       = useState<Ward | null>(null)
   const [showWardForm, setShowWardForm] = useState(false)
@@ -156,18 +157,37 @@ export default function AdminPage() {
   }
 
   // ===== DELETE =====
+  function friendlyDeleteError(error: any, label: string) {
+    if (error.code === '23503') {
+      return `ลบ "${label}" ไม่ได้ เพราะมีประวัติการตรวจเช็ค/ข้อมูลอื่นอ้างอิงอยู่แล้ว — แนะนำให้กด "ปิด" แทน เพื่อซ่อนจากการใช้งานใหม่ โดยไม่ลบประวัติเก่าทิ้ง`
+    }
+    return 'ลบไม่ได้: ' + error.message
+  }
+
   async function deleteWard(id: string) {
+    setDeleteError(null)
+    const name = confirmDelete?.name ?? ''
     const { error } = await supabase.from('wards').delete().eq('id', id)
-    if (error) showMsg('ลบไม่ได้: ' + error.message, 'err')
-    else { showMsg('ลบหอผู้ป่วยแล้ว', 'ok'); loadAll() }
-    setConfirmDelete(null)
+    if (error) {
+      setDeleteError(friendlyDeleteError(error, name))
+    } else {
+      showMsg('ลบหอผู้ป่วยแล้ว', 'ok')
+      loadAll()
+      setConfirmDelete(null)
+    }
   }
 
   async function deleteItem(id: string) {
+    setDeleteError(null)
+    const name = confirmDelete?.name ?? ''
     const { error } = await supabase.from('cart_items').delete().eq('id', id)
-    if (error) showMsg('ลบไม่ได้: ' + error.message, 'err')
-    else { showMsg('ลบอุปกรณ์แล้ว', 'ok'); loadAll() }
-    setConfirmDelete(null)
+    if (error) {
+      setDeleteError(friendlyDeleteError(error, name))
+    } else {
+      showMsg('ลบอุปกรณ์แล้ว', 'ok')
+      loadAll()
+      setConfirmDelete(null)
+    }
   }
 
   // ===== WARD CRUD =====
@@ -545,14 +565,19 @@ export default function AdminPage() {
               </svg>
             </div>
             <p className="text-center font-semibold text-gray-800 mb-1">ยืนยันการลบ</p>
-            <p className="text-center text-sm text-gray-500 mb-6">
+            <p className="text-center text-sm text-gray-500 mb-3">
               ต้องการลบ <span className="font-medium text-gray-800">"{confirmDelete.name}"</span> ใช่ไหม?<br/>
               <span className="text-red-500">ไม่สามารถกู้คืนได้</span>
             </p>
+            {deleteError && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-800 mb-3">
+                {deleteError}
+              </div>
+            )}
             <div className="flex gap-3">
-              <button onClick={() => setConfirmDelete(null)}
+              <button onClick={() => { setConfirmDelete(null); setDeleteError(null) }}
                 className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-600">
-                ยกเลิก
+                {deleteError ? 'ปิดหน้าต่างนี้' : 'ยกเลิก'}
               </button>
               <button
                 onClick={() => confirmDelete.type === 'ward'
