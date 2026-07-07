@@ -16,6 +16,7 @@ interface ItemResult {
   item_id: string
   actual_qty: number
   note: string
+  expiryDate: string
 }
 
 const TABS = [
@@ -46,6 +47,7 @@ export default function CheckPage() {
       // อ่าน ward จาก URL เช่น ?ward=SGM1
       const params = new URLSearchParams(window.location.search)
       const wCode = params.get('ward') || 'SGM1'
+      const isRefill = params.get('refill') === '1'
 
       const { data: ward } = await supabase
         .from('wards')
@@ -62,19 +64,20 @@ export default function CheckPage() {
         .from('cart_items').select('*')
         .eq('is_active', true).order('drawer').order('item_name_en')
 
+      const init: Record<string, ItemResult> = {}
       if (items) {
-        setAllItems(items)
-        const init: Record<string, ItemResult> = {}
         items.forEach((item: CartItem) => {
           init[item.id] = {
             item_id: item.id,
             actual_qty: item.standard_qty,
             note: '',
+            expiryDate: '',
           }
         })
-        setResults(init)
+        setAllItems(items)
       }
 
+      let existingResults: any[] | null = null
       if (ward) {
         const { data: check } = await supabase
           .from('daily_checks').select('id, status, inspector_name, submitted_at')
@@ -82,6 +85,39 @@ export default function CheckPage() {
         if (check) {
           setCheckId(check.id)
           setExistingCheck(check)
+
+          // โหลดผลตรวจเดิมของวันนี้มาแทนค่ามาตรฐาน กันจำนวนรีเซ็ตทุกครั้งที่เข้าหน้านี้
+          const { data: prevResults } = await supabase
+            .from('check_results')
+            .select('item_id, actual_qty, note')
+            .eq('check_id', check.id)
+          existingResults = prevResults
+        }
+      }
+
+      if (existingResults) {
+        existingResults.forEach((r: any) => {
+          if (init[r.item_id]) {
+            init[r.item_id] = {
+              ...init[r.item_id],
+              actual_qty: r.actual_qty,
+              note: r.note || '',
+            }
+          }
+        })
+      }
+
+      setResults(init)
+
+      // มาจากปุ่ม "เติมของ" (?refill=1) -> เลื่อนไปแท็บแรกที่มีของขาดให้อัตโนมัติ
+      if (isRefill && items) {
+        const deficitItem = items.find((item: CartItem) => {
+          const qty = existingResults?.find((r: any) => r.item_id === item.id)?.actual_qty ?? item.standard_qty
+          return qty < item.standard_qty
+        })
+        if (deficitItem) {
+          const tabIndex = TABS.findIndex(t => t.key === deficitItem.drawer)
+          if (tabIndex >= 0) setActiveTab(tabIndex)
         }
       }
     }
@@ -104,6 +140,9 @@ export default function CheckPage() {
   }
   function updateNote(itemId: string, val: string) {
     setResults(prev => ({ ...prev, [itemId]: { ...prev[itemId], note: val } }))
+  }
+  function updateExpiry(itemId: string, val: string) {
+    setResults(prev => ({ ...prev, [itemId]: { ...prev[itemId], expiryDate: val } }))
   }
 
   function isDeficit(item: CartItem) {
@@ -157,6 +196,22 @@ export default function CheckPage() {
         .from('check_results')
         .upsert(rows, { onConflict: 'check_id,item_id' })
       if (resErr) throw resErr
+
+      // บันทึกวันหมดอายุของใหม่ (ถ้ามีการกรอก) แยกตาม ward + item
+      const expiryRows = allItems
+        .filter(item => results[item.id]?.expiryDate)
+        .map(item => ({
+          ward_id: wardId,
+          item_id: item.id,
+          expiry_date: results[item.id].expiryDate,
+        }))
+
+      if (expiryRows.length > 0) {
+        const { error: expErr } = await supabase
+          .from('ward_item_expiry')
+          .upsert(expiryRows, { onConflict: 'ward_id,item_id' })
+        if (expErr) throw expErr
+      }
 
       setSaved(true)
       setShowDuplicateConfirm(false)
@@ -307,14 +362,26 @@ export default function CheckPage() {
 
               {/* Deficit note */}
               {deficit && (
-                <div className="mt-2 bg-red-50 border border-red-100 rounded-xl p-3">
-                  <p className="text-xs text-red-600 font-medium mb-1.5">⚠️ บังคับกรอกหมายเหตุ</p>
-                  <textarea rows={2} value={r?.note ?? ''}
-                    onChange={e => updateNote(item.id, e.target.value)}
-                    placeholder="เช่น รอกล่องยาเติมจากคลัง / กำลังดำเนินการ..."
-                    className="w-full text-xs border border-red-200 rounded-lg px-3 py-2
-                               placeholder:text-red-300 focus:outline-none focus:ring-2
-                               focus:ring-red-400 bg-white text-gray-800 resize-none"/>
+                <div className="mt-2 bg-red-50 border border-red-100 rounded-xl p-3 space-y-2">
+                  <div>
+                    <p className="text-xs text-red-600 font-medium mb-1.5">⚠️ บังคับกรอกหมายเหตุ</p>
+                    <textarea rows={2} value={r?.note ?? ''}
+                      onChange={e => updateNote(item.id, e.target.value)}
+                      placeholder="เช่น รอกล่องยาเติมจากคลัง / กำลังดำเนินการ..."
+                      className="w-full text-xs border border-red-200 rounded-lg px-3 py-2
+                                 placeholder:text-red-300 focus:outline-none focus:ring-2
+                                 focus:ring-red-400 bg-white text-gray-800 resize-none"/>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium mb-1">
+                      🗓️ วันหมดอายุของใหม่ (ถ้าเติมของใหม่ ไม่บังคับ)
+                    </p>
+                    <input type="date" value={r?.expiryDate ?? ''}
+                      onChange={e => updateExpiry(item.id, e.target.value)}
+                      className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2
+                                 focus:outline-none focus:ring-2 focus:ring-emerald-400
+                                 bg-white text-gray-800"/>
+                  </div>
                 </div>
               )}
             </div>
