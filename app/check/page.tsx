@@ -170,21 +170,22 @@ export default function CheckPage() {
     setSaving(true)
     try {
       let currentCheckId = checkId
-      if (!existingCheck || existingCheck.status !== 'confirmed') {
-        const { data: check, error: err } = await supabase
-          .from('daily_checks')
-          .upsert({
-            ward_id: wardId,
-            check_date: todayStr,
-            inspector_name: existingCheck?.inspector_name || 'พว. ผู้ตรวจ',
-            status: 'submitted',
-            submitted_at: new Date().toISOString(),
-          }, { onConflict: 'ward_id,check_date' })
-          .select('id').single()
-        if (err) throw err
-        currentCheckId = check.id
-        setCheckId(check.id)
-      }
+      // บันทึกทุกครั้ง (รวมถึงตอนเติมของหลังยืนยันสรุปไปแล้ว) จะรีเซ็ตสถานะกลับเป็น 'submitted'
+      // เพื่อบังคับให้ต้องไปกดยืนยันสรุปข้อมูลใหม่อีกครั้งที่หน้า Summary
+      const { data: check, error: err } = await supabase
+        .from('daily_checks')
+        .upsert({
+          ward_id: wardId,
+          check_date: todayStr,
+          inspector_name: existingCheck?.inspector_name || 'พว. ผู้ตรวจ',
+          status: 'submitted',
+          submitted_at: new Date().toISOString(),
+          confirmed_at: null,
+        }, { onConflict: 'ward_id,check_date' })
+        .select('id').single()
+      if (err) throw err
+      currentCheckId = check.id
+      setCheckId(check.id)
 
       const rows = allItems.map(item => ({
         check_id: currentCheckId,
