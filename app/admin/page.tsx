@@ -499,21 +499,33 @@ export default function AdminPage() {
                 <p className="text-xs text-gray-400">
                   รายการทั้งหมด ({items.length}) — กรอกเฉพาะรายการที่ทราบวันหมดอายุ ที่ไม่กรอกจะไม่ถูกบันทึก
                 </p>
-                <div className="space-y-2">
-                  {items.map(item => (
-                    <div key={item.id} className="bg-white rounded-2xl border border-gray-100 p-3">
-                      <p className="text-sm font-medium text-gray-800">{item.item_name_en}</p>
-                      {item.item_name_th && <p className="text-xs text-gray-400">{item.item_name_th}</p>}
-                      <input type="date" value={expiryMap[item.id] ?? ''}
-                        onChange={e => updateExpiryMap(item.id, e.target.value)}
-                        className="w-full mt-2 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800
-                                   focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
+                {Object.keys(DRAWER_LABELS).map(drawerKey => {
+                  const drawerItems = items
+                    .filter(i => i.drawer === drawerKey)
+                    .sort((a, b) => a.item_name_en.localeCompare(b.item_name_en))
+                  if (drawerItems.length === 0) return null
+                  return (
+                    <div key={drawerKey} className="space-y-2">
+                      <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wider
+                        bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-1.5 mt-3">
+                        {DRAWER_LABELS[drawerKey]} ({drawerItems.length})
+                      </p>
+                      {drawerItems.map(item => (
+                        <div key={item.id} className="bg-white rounded-2xl border border-gray-100 p-3">
+                          <p className="text-sm font-medium text-gray-800">{item.item_name_en}</p>
+                          {item.item_name_th && <p className="text-xs text-gray-400">{item.item_name_th}</p>}
+                          <input type="date" value={expiryMap[item.id] ?? ''}
+                            onChange={e => updateExpiryMap(item.id, e.target.value)}
+                            className="w-full mt-2 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800
+                                       focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  )
+                })}
                 <button onClick={saveExpiryAll} disabled={expirySaving}
                   className="w-full bg-emerald-700 text-white py-3 rounded-xl text-sm font-medium
-                             disabled:opacity-60">
+                             disabled:opacity-60 mt-3">
                   {expirySaving ? 'กำลังบันทึก...' : 'บันทึกวันหมดอายุทั้งหมด'}
                 </button>
               </>
