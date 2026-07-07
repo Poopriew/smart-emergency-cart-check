@@ -39,6 +39,9 @@ export default function CheckPage() {
   const [checkId, setCheckId]     = useState<string | null>(null)
   const [existingCheck, setExistingCheck] = useState<any>(null)
   const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false)
+  const [refilledItems, setRefilledItems] = useState<Record<string, boolean>>({})
+OLDEOF
+diff_placeholder=1
 
   const todayStr = new Date().toISOString().split('T')[0]
 
@@ -131,6 +134,7 @@ export default function CheckPage() {
       ...prev,
       [itemId]: { ...prev[itemId], actual_qty: Math.min(prev[itemId].actual_qty + 1, max * 2) }
     }))
+    setRefilledItems(prev => ({ ...prev, [itemId]: true }))
   }
   function decrement(itemId: string) {
     setResults(prev => ({
@@ -362,26 +366,28 @@ export default function CheckPage() {
 
               {/* Deficit note */}
               {deficit && (
-                <div className="mt-2 bg-red-50 border border-red-100 rounded-xl p-3 space-y-2">
-                  <div>
-                    <p className="text-xs text-red-600 font-medium mb-1.5">⚠️ บังคับกรอกหมายเหตุ</p>
-                    <textarea rows={2} value={r?.note ?? ''}
-                      onChange={e => updateNote(item.id, e.target.value)}
-                      placeholder="เช่น รอกล่องยาเติมจากคลัง / กำลังดำเนินการ..."
-                      className="w-full text-xs border border-red-200 rounded-lg px-3 py-2
-                                 placeholder:text-red-300 focus:outline-none focus:ring-2
-                                 focus:ring-red-400 bg-white text-gray-800 resize-none"/>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 font-medium mb-1">
-                      🗓️ วันหมดอายุของใหม่ (ถ้าเติมของใหม่ ไม่บังคับ)
-                    </p>
-                    <input type="date" value={r?.expiryDate ?? ''}
-                      onChange={e => updateExpiry(item.id, e.target.value)}
-                      className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2
-                                 focus:outline-none focus:ring-2 focus:ring-emerald-400
-                                 bg-white text-gray-800"/>
-                  </div>
+                <div className="mt-2 bg-red-50 border border-red-100 rounded-xl p-3">
+                  <p className="text-xs text-red-600 font-medium mb-1.5">⚠️ บังคับกรอกหมายเหตุ</p>
+                  <textarea rows={2} value={r?.note ?? ''}
+                    onChange={e => updateNote(item.id, e.target.value)}
+                    placeholder="เช่น รอกล่องยาเติมจากคลัง / กำลังดำเนินการ..."
+                    className="w-full text-xs border border-red-200 rounded-lg px-3 py-2
+                               placeholder:text-red-300 focus:outline-none focus:ring-2
+                               focus:ring-red-400 bg-white text-gray-800 resize-none"/>
+                </div>
+              )}
+
+              {/* วันหมดอายุของใหม่ - โชว์ค้างไว้ตราบเท่าที่มีการกด + เติมของในรอบนี้ ไม่ว่าจะครบแล้วหรือยัง */}
+              {(deficit || refilledItems[item.id]) && (
+                <div className="mt-2 bg-emerald-50 border border-emerald-100 rounded-xl p-3">
+                  <p className="text-xs text-gray-500 font-medium mb-1">
+                    🗓️ วันหมดอายุของใหม่ (ถ้าเติมของใหม่ ไม่บังคับ)
+                  </p>
+                  <input type="date" value={r?.expiryDate ?? ''}
+                    onChange={e => updateExpiry(item.id, e.target.value)}
+                    className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2
+                               focus:outline-none focus:ring-2 focus:ring-emerald-400
+                               bg-white text-gray-800"/>
                 </div>
               )}
             </div>
