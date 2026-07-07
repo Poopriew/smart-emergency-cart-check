@@ -375,8 +375,8 @@ export default function CheckPage() {
                 </div>
               )}
 
-              {/* วันหมดอายุของใหม่ - โชว์ค้างไว้ตราบเท่าที่มีการกด + เติมของในรอบนี้ ไม่ว่าจะครบแล้วหรือยัง */}
-              {(deficit || refilledItems[item.id]) && (
+              {/* วันหมดอายุของใหม่ - โชว์เฉพาะตอนกด + เติมของในรอบนี้เท่านั้น ไม่โชว์แค่เพราะขาด (กด -) */}
+              {refilledItems[item.id] && (
                 <div className="mt-2 bg-emerald-50 border border-emerald-100 rounded-xl p-3">
                   <p className="text-xs text-gray-500 font-medium mb-1">
                     🗓️ วันหมดอายุของใหม่ (ถ้าเติมของใหม่ ไม่บังคับ)
