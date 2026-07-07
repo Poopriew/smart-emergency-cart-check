@@ -12,6 +12,7 @@ interface Ward {
 }
 
 interface ExpiryAlert {
+  item_id: string
   item_name_en: string
   item_name_th: string
   expiry_date: string
@@ -46,6 +47,9 @@ export default function SafeteTapePage() {
   const [checkInfo, setCheckInfo] = useState<any>(null)
   const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false)
   const [deficitItems, setDeficitItems] = useState<any[]>([])
+  const [expiryUpdateItem, setExpiryUpdateItem] = useState<ExpiryAlert | null>(null)
+  const [newExpiryDate, setNewExpiryDate] = useState('')
+  const [expirySaving, setExpirySaving] = useState(false)
 
   const today = new Date()
   const todayStr = today.toISOString().split('T')[0]
@@ -63,12 +67,15 @@ export default function SafeteTapePage() {
         .single()
       if (wardData) setWard(wardData)
 
-      // โหลด expiry alerts
-      const { data: alertData } = await supabase
-        .from('expiry_alerts')
-        .select('*')
-        .order('days_remaining', { ascending: true })
-      if (alertData) setAlerts(alertData)
+      // โหลด expiry alerts เฉพาะของวอร์ดตัวเอง
+      if (wardData) {
+        const { data: alertData } = await supabase
+          .from('expiry_alerts')
+          .select('*')
+          .eq('ward_id', wardData.id)
+          .order('days_remaining', { ascending: true })
+        if (alertData) setAlerts(alertData)
+      }
         // โหลด check วันนี้
 if (wardData) {
   const { data: checkData } = await supabase
@@ -166,6 +173,30 @@ if (wardData) {
     }
   }
 
+  // ---- อัปเดตวันหมดอายุใหม่ (เอาของใกล้หมดอายุไปแลกของใหม่มาแล้ว) ----
+  async function handleUpdateExpiry() {
+    if (!expiryUpdateItem || !ward?.id || !newExpiryDate) return
+    setExpirySaving(true)
+    try {
+      const { error: err } = await supabase
+        .from('ward_item_expiry')
+        .upsert({
+          ward_id: ward.id,
+          item_id: expiryUpdateItem.item_id,
+          expiry_date: newExpiryDate,
+        }, { onConflict: 'ward_id,item_id' })
+      if (err) throw err
+      setAlerts(prev => prev.filter(a => a.item_id !== expiryUpdateItem.item_id))
+      setAlertIndex(0)
+      setExpiryUpdateItem(null)
+      setNewExpiryDate('')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'เกิดข้อผิดพลาด')
+    } finally {
+      setExpirySaving(false)
+    }
+  }
+
   // ---- UI ----
   const currentAlert = alerts[alertIndex]
 
@@ -201,14 +232,17 @@ if (wardData) {
         </div>
       </div>
 
-      {/* ===== ALERT BANNER ===== */}
+      {/* ===== ALERT BANNER (กดได้ เพื่ออัปเดตวันหมดอายุใหม่) ===== */}
       {currentAlert && (
-        <div className="bg-amber-50 border-l-4 border-amber-400 px-4 py-2.5 flex items-start gap-2">
+        <button
+          onClick={() => { setExpiryUpdateItem(currentAlert); setNewExpiryDate(currentAlert.expiry_date) }}
+          className="w-full text-left bg-amber-50 border-l-4 border-amber-400 px-4 py-2.5 flex items-start gap-2 active:bg-amber-100 transition-colors"
+        >
           <svg className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
               d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
           </svg>
-          <div className="text-xs text-amber-800 leading-relaxed">
+          <div className="text-xs text-amber-800 leading-relaxed flex-1">
             <span className="font-semibold">ALERT:</span>{' '}
             อุปกรณ์ใกล้หมดอายุใน {currentAlert.days_remaining} วัน:{' '}
             <span className="font-medium">{currentAlert.item_name_en}</span>
@@ -220,8 +254,9 @@ if (wardData) {
             {alerts.length > 1 && (
               <span className="ml-2 opacity-50">{alertIndex + 1}/{alerts.length}</span>
             )}
+            <span className="block text-amber-500 mt-0.5">แตะเพื่ออัปเดตวันหมดอายุใหม่ →</span>
           </div>
-        </div>
+        </button>
       )}
 
       {/* ===== BODY ===== */}
@@ -407,6 +442,38 @@ if (wardData) {
         )}
 
       </div>
+
+      {/* ===== UPDATE EXPIRY MODAL ===== */}
+      {expiryUpdateItem && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-6">
+          <div className="bg-white rounded-2xl p-5 max-w-sm w-full shadow-xl">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xl">🗓️</span>
+              <p className="text-sm font-semibold text-gray-800">อัปเดตวันหมดอายุใหม่</p>
+            </div>
+            <p className="text-xs text-gray-500 leading-relaxed mb-3">
+              {expiryUpdateItem.item_name_en}
+              {expiryUpdateItem.item_name_th ? ` (${expiryUpdateItem.item_name_th})` : ''}
+              <br />ถ้าเอาของเดิมไปแลกของใหม่มาแล้ว กรอกวันหมดอายุใหม่แล้วกดบันทึก
+            </p>
+            <input type="date" value={newExpiryDate}
+              onChange={e => setNewExpiryDate(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800
+                         focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-4"/>
+            <div className="flex gap-2">
+              <button onClick={() => { setExpiryUpdateItem(null); setNewExpiryDate('') }}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-600">
+                ยกเลิก
+              </button>
+              <button onClick={handleUpdateExpiry} disabled={expirySaving || !newExpiryDate}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-emerald-700 text-white
+                           disabled:opacity-60 disabled:cursor-not-allowed">
+                {expirySaving ? 'กำลังบันทึก...' : 'บันทึก'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ===== DUPLICATE CHECK CONFIRM MODAL ===== */}
       {showDuplicateConfirm && (
