@@ -403,11 +403,7 @@ export default function AdminPage() {
                         <span className="text-xs bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded-full">
                           {item.standard_qty} {item.unit}
                         </span>
-                        {item.expiry_date && (
-                          <span className="text-xs bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-full">
-                            Exp: {new Date(item.expiry_date).toLocaleDateString('th-TH')}
-                          </span>
-                        )}
+
                       </div>
                     </div>
                     <div className="flex gap-2 flex-shrink-0">
@@ -547,13 +543,10 @@ export default function AdminPage() {
                              focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
               </div>
             </div>
-            <div>
-              <label className="text-xs text-gray-500 font-medium">วันหมดอายุ (ถ้ามี)</label>
-              <input type="date" value={editItem.expiry_date ?? ''}
-                onChange={e => setEditItem({ ...editItem, expiry_date: e.target.value || null })}
-                className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800
-                           focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
-            </div>
+            <p className="text-xs text-gray-400 bg-gray-50 rounded-xl px-3 py-2">
+              ℹ️ วันหมดอายุของรายการนี้ ตอนนี้เก็บแยกตามแต่ละหอผู้ป่วยแล้ว
+              (ดูได้ที่แท็บ "วันหมดอายุรายวอร์ด")
+            </p>
             <button onClick={saveItem} disabled={saving}
               className="w-full bg-emerald-700 text-white py-3 rounded-xl text-sm font-medium disabled:opacity-60">
               {saving ? 'กำลังบันทึก...' : 'บันทึก'}
