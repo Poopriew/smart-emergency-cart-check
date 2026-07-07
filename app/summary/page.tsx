@@ -48,6 +48,7 @@ export default function SummaryPage() {
   const [confirmed, setConfirmed]     = useState(false)
   const [error, setError]             = useState<string | null>(null)
   const [wardName, setWardName]       = useState('ICU 1')
+  const [tapeUpdating, setTapeUpdating] = useState(false)
 
   const todayStr = new Date().toISOString().split('T')[0]
 
@@ -102,6 +103,24 @@ export default function SummaryPage() {
     }
     load()
   }, [])
+
+  async function handleApplyTape() {
+    if (!checkInfo) return
+    setTapeUpdating(true)
+    setError(null)
+    try {
+      const { error: err } = await supabase
+        .from('daily_checks')
+        .update({ tape_status: true, tape_note: null })
+        .eq('id', checkInfo.id)
+      if (err) throw err
+      setCheckInfo({ ...checkInfo, tape_status: true, tape_note: null })
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'เกิดข้อผิดพลาด')
+    } finally {
+      setTapeUpdating(false)
+    }
+  }
 
   async function handleConfirm() {
     if (!checkInfo) return
@@ -262,6 +281,26 @@ export default function SummaryPage() {
             )}
           </div>
         </div>
+
+        {/* ===== เติมของครบแล้ว แต่ยังไม่ได้คาดสายคาดกลับ ===== */}
+        {!confirmed && deficits.length === 0 && checkInfo.tape_status === false && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-lg">🎗️</span>
+              <p className="text-sm font-semibold text-amber-800">
+                เติมของครบแล้ว — อย่าลืมคาดสายคาดกลับที่ล้อ
+              </p>
+            </div>
+            <p className="text-xs text-amber-700 mb-3">
+              เมื่อคาดสายคาดที่ล้อฉุกเฉินเรียบร้อยแล้ว กดยืนยันด้านล่างเพื่ออัปเดตสถานะว่าล้อพร้อมใช้งาน
+            </p>
+            <button onClick={handleApplyTape} disabled={tapeUpdating}
+              className="w-full bg-amber-600 text-white text-sm font-medium py-2.5 rounded-xl
+                         disabled:opacity-60 disabled:cursor-not-allowed">
+              {tapeUpdating ? 'กำลังบันทึก...' : '🟢 คาดสายคาดเรียบร้อยแล้ว'}
+            </button>
+          </div>
+        )}
 
         {/* ===== รายการขาด ===== */}
         {deficits.length > 0 ? (
