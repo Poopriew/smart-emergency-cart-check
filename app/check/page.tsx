@@ -40,8 +40,6 @@ export default function CheckPage() {
   const [existingCheck, setExistingCheck] = useState<any>(null)
   const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false)
   const [refilledItems, setRefilledItems] = useState<Record<string, boolean>>({})
-OLDEOF
-diff_placeholder=1
 
   const todayStr = new Date().toISOString().split('T')[0]
 
