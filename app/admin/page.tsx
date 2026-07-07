@@ -32,7 +32,7 @@ const DRAWER_LABELS: Record<string, string> = {
   drawer4: 'ลิ้นชัก 4',
 }
 
-type Tab = 'wards' | 'items'
+type Tab = 'wards' | 'items' | 'expiry'
 
 // ---- Swipeable Row Component ----
 function SwipeableRow({
@@ -131,6 +131,11 @@ export default function AdminPage() {
   const [showItemForm, setShowItemForm] = useState(false)
   const [filterDrawer, setFilterDrawer] = useState<string>('all')
   const newItem = (): CartItem => ({ id: '', drawer: 'drawer1', item_name_en: '', item_name_th: '', standard_qty: 1, unit: 'Amp', expiry_date: null, alert_days: 30, is_active: true })
+
+  const [expiryWardId, setExpiryWardId] = useState<string>('')
+  const [expiryMap, setExpiryMap] = useState<Record<string, string>>({})
+  const [expiryLoading, setExpiryLoading] = useState(false)
+  const [expirySaving, setExpirySaving] = useState(false)
 
   useEffect(() => { loadAll() }, [])
 
@@ -257,6 +262,45 @@ export default function AdminPage() {
     loadAll()
   }
 
+  // ===== EXPIRY (per ward) =====
+  async function loadExpiryForWard(wardId: string) {
+    setExpiryWardId(wardId)
+    setExpiryMap({})
+    if (!wardId) return
+    setExpiryLoading(true)
+    const { data } = await supabase
+      .from('ward_item_expiry')
+      .select('item_id, expiry_date')
+      .eq('ward_id', wardId)
+    const map: Record<string, string> = {}
+    if (data) data.forEach((row: any) => { map[row.item_id] = row.expiry_date })
+    setExpiryMap(map)
+    setExpiryLoading(false)
+  }
+
+  function updateExpiryMap(itemId: string, val: string) {
+    setExpiryMap(prev => ({ ...prev, [itemId]: val }))
+  }
+
+  async function saveExpiryAll() {
+    if (!expiryWardId) return
+    setExpirySaving(true)
+    try {
+      const rows = Object.entries(expiryMap)
+        .filter(([, date]) => !!date)
+        .map(([itemId, date]) => ({ ward_id: expiryWardId, item_id: itemId, expiry_date: date }))
+      if (rows.length > 0) {
+        const { error } = await supabase.from('ward_item_expiry').upsert(rows, { onConflict: 'ward_id,item_id' })
+        if (error) throw error
+      }
+      showMsg('บันทึกวันหมดอายุสำเร็จ ✓', 'ok')
+    } catch (e: any) {
+      showMsg(e.message, 'err')
+    } finally {
+      setExpirySaving(false)
+    }
+  }
+
   const filteredItems = filterDrawer === 'all'
     ? items
     : items.filter(i => i.drawer === filterDrawer)
@@ -290,11 +334,11 @@ export default function AdminPage() {
 
       {/* TAB */}
       <div className="flex bg-emerald-900">
-        {(['wards', 'items'] as Tab[]).map(t => (
+        {(['wards', 'items', 'expiry'] as Tab[]).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors
               ${tab === t ? 'border-emerald-300 text-white' : 'border-transparent text-emerald-400'}`}>
-            {t === 'wards' ? '🏥 หอผู้ป่วย' : '💊 อุปกรณ์ในล้อ'}
+            {t === 'wards' ? '🏥 หอผู้ป่วย' : t === 'items' ? '💊 อุปกรณ์ในล้อ' : '🗓️ วันหมดอายุ'}
           </button>
         ))}
       </div>
@@ -421,6 +465,59 @@ export default function AdminPage() {
                 </div>
               </SwipeableRow>
             ))}
+          </div>
+        )}
+
+        {/* ===== EXPIRY TAB ===== */}
+        {tab === 'expiry' && (
+          <div className="p-4 space-y-3">
+            <div>
+              <label className="text-xs text-gray-500 font-medium">เลือกหอผู้ป่วย</label>
+              <select value={expiryWardId}
+                onChange={e => loadExpiryForWard(e.target.value)}
+                className="w-full mt-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800
+                           focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+                <option value="">-- เลือกหอผู้ป่วย --</option>
+                {wards.map(w => (
+                  <option key={w.id} value={w.id}>{w.ward_name_en} ({w.ward_name_th})</option>
+                ))}
+              </select>
+            </div>
+
+            {!expiryWardId && (
+              <p className="text-xs text-gray-400 text-center py-8">
+                เลือกหอผู้ป่วยก่อน เพื่อดู/แก้ไขวันหมดอายุของแต่ละรายการ
+              </p>
+            )}
+
+            {expiryWardId && expiryLoading && (
+              <p className="text-xs text-gray-400 text-center py-8">กำลังโหลด...</p>
+            )}
+
+            {expiryWardId && !expiryLoading && (
+              <>
+                <p className="text-xs text-gray-400">
+                  รายการทั้งหมด ({items.length}) — กรอกเฉพาะรายการที่ทราบวันหมดอายุ ที่ไม่กรอกจะไม่ถูกบันทึก
+                </p>
+                <div className="space-y-2">
+                  {items.map(item => (
+                    <div key={item.id} className="bg-white rounded-2xl border border-gray-100 p-3">
+                      <p className="text-sm font-medium text-gray-800">{item.item_name_en}</p>
+                      {item.item_name_th && <p className="text-xs text-gray-400">{item.item_name_th}</p>}
+                      <input type="date" value={expiryMap[item.id] ?? ''}
+                        onChange={e => updateExpiryMap(item.id, e.target.value)}
+                        className="w-full mt-2 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800
+                                   focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
+                    </div>
+                  ))}
+                </div>
+                <button onClick={saveExpiryAll} disabled={expirySaving}
+                  className="w-full bg-emerald-700 text-white py-3 rounded-xl text-sm font-medium
+                             disabled:opacity-60">
+                  {expirySaving ? 'กำลังบันทึก...' : 'บันทึกวันหมดอายุทั้งหมด'}
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
