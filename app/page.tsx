@@ -45,6 +45,7 @@ export default function SafeteTapePage() {
   const [alertIndex, setAlertIndex] = useState(0)
   const [checkInfo, setCheckInfo] = useState<any>(null)
   const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false)
+  const [deficitItems, setDeficitItems] = useState<any[]>([])
 
   const today = new Date()
   const todayStr = today.toISOString().split('T')[0]
@@ -76,7 +77,18 @@ if (wardData) {
     .eq('ward_id', wardData.id)
     .eq('check_date', todayStr)
     .single()
-  if (checkData) setCheckInfo(checkData)
+  if (checkData) {
+    setCheckInfo(checkData)
+    const { data: deficitData } = await supabase
+      .from('check_results')
+      .select(`
+        actual_qty, note,
+        cart_items ( item_name_en, item_name_th, standard_qty, unit )
+      `)
+      .eq('check_id', checkData.id)
+      .eq('is_deficit', true)
+    if (deficitData) setDeficitItems(deficitData)
+  }
 }
     }
     load()
@@ -310,6 +322,35 @@ if (wardData) {
             </div>
           )}
         </div>
+
+        {/* ===== รายการของที่ขาด + ปุ่มเติมของ ===== */}
+        {deficitItems.length > 0 && (
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-lg">⚠️</span>
+              <p className="text-sm font-semibold text-red-700">
+                มีของไม่ครบ {deficitItems.length} รายการ ต้องเติม
+              </p>
+            </div>
+            <div className="space-y-1.5 mb-3">
+              {deficitItems.map((d: any, i: number) => (
+                <div key={i} className="flex justify-between text-xs text-red-600">
+                  <span>
+                    {d.cart_items?.item_name_en}
+                    {d.cart_items?.item_name_th ? ` (${d.cart_items.item_name_th})` : ''}
+                  </span>
+                  <span className="font-medium">
+                    {d.actual_qty} / {d.cart_items?.standard_qty} {d.cart_items?.unit}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <a href={`/check?ward=${ward?.ward_code ?? ''}&refill=1`}
+              className="block text-center bg-red-600 text-white text-sm font-medium py-2.5 rounded-xl">
+              🔧 เติมของ
+            </a>
+          </div>
+        )}
 
         {/* Last check info */}
 <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
