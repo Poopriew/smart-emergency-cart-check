@@ -23,3 +23,32 @@ export function isPastMorningDeadline(): boolean {
   const hour = bangkokNow.getHours()
   return hour >= 18 || hour < 6
 }
+
+// หาชั่วโมง (เวลาไทย) ของ timestamp ที่กำหนด
+function getBangkokHourOf(iso: string): number {
+  const d = new Date(iso)
+  const s = d.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })
+  return new Date(s).getHours()
+}
+
+// เช็คว่าการบันทึกครั้งนี้ "สาย" ไหม (หลัง 18:00 น. หรือดึกเกิน 06:00 น.ของวันถัดไป)
+export function isLateSubmission(iso: string | null): boolean {
+  if (!iso) return false
+  const hour = getBangkokHourOf(iso)
+  return hour >= 18 || hour < 6
+}
+
+// สร้างรายการวันที่ (YYYY-MM-DD) ทั้งหมดตั้งแต่ start ถึง end (รวมทั้งสองวัน)
+export function enumerateDates(startStr: string, endStr: string): string[] {
+  const dates: string[] = []
+  const cur = new Date(startStr + 'T00:00:00')
+  const end = new Date(endStr + 'T00:00:00')
+  while (cur <= end) {
+    const y = cur.getFullYear()
+    const m = String(cur.getMonth() + 1).padStart(2, '0')
+    const d = String(cur.getDate()).padStart(2, '0')
+    dates.push(`${y}-${m}-${d}`)
+    cur.setDate(cur.getDate() + 1)
+  }
+  return dates
+}
