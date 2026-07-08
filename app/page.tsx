@@ -396,14 +396,19 @@ if (wardData) {
   <div className="text-xs text-gray-500 space-y-1.5">
     <div className="flex justify-between">
       <span>การตรวจสอบครั้งล่าสุด</span>
-      <span className="font-medium text-gray-700">
-        {checkInfo
-          ? new Date(checkInfo.submitted_at ?? checkInfo.created_at)
-              .toLocaleString('th-TH', {
-                day: 'numeric', month: 'numeric', year: 'numeric',
-                hour: '2-digit', minute: '2-digit',
-              }) + ' น.'
-          : '—'}
+      <span className="font-medium text-gray-700 flex flex-col items-end leading-tight">
+        {checkInfo ? (
+          <>
+            <span>
+              {new Date(checkInfo.submitted_at ?? checkInfo.created_at)
+                .toLocaleDateString('th-TH', { day: 'numeric', month: 'numeric', year: 'numeric' })}
+            </span>
+            <span className="text-gray-400">
+              {new Date(checkInfo.submitted_at ?? checkInfo.created_at)
+                .toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
+            </span>
+          </>
+        ) : '—'}
       </span>
     </div>
     <div className="flex justify-between">
