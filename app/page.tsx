@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
+import { getWorkDateStr } from './dateUtils'
 
 // ---- Types ----
 interface Ward {
@@ -52,7 +53,7 @@ export default function SafeteTapePage() {
   const [expirySaving, setExpirySaving] = useState(false)
 
   const today = new Date()
-  const todayStr = today.toISOString().split('T')[0]
+  const todayStr = getWorkDateStr()
 
   // ---- Load ward + expiry alerts ----
   useEffect(() => {

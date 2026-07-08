@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
+import { getWorkDateStr } from '../dateUtils'
 
 interface DeficitItem {
   item_name_en: string
@@ -50,7 +51,7 @@ export default function SummaryPage() {
   const [wardName, setWardName]       = useState('ICU 1')
   const [tapeUpdating, setTapeUpdating] = useState(false)
 
-  const todayStr = new Date().toISOString().split('T')[0]
+  const todayStr = getWorkDateStr()
 
   useEffect(() => {
     async function load() {

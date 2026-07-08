@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
+import { getWorkDateStr } from '../dateUtils'
 
 interface CartItem {
   id: string
@@ -41,7 +42,7 @@ export default function CheckPage() {
   const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false)
   const [refilledItems, setRefilledItems] = useState<Record<string, boolean>>({})
 
-  const todayStr = new Date().toISOString().split('T')[0]
+  const todayStr = getWorkDateStr()
 
   useEffect(() => {
     async function load() {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../supabase'
+import { isPastMorningDeadline } from '../dateUtils'
 
 interface WardSummary {
   ward_id: string
@@ -251,7 +252,8 @@ export default function DashboardPage() {
 
                   {/* Color bar */}
                   <div className={`w-1 h-12 rounded-full flex-shrink-0
-                    ${st === 'ok' ? 'bg-emerald-500' : st === 'deficit' ? 'bg-red-500' : 'bg-gray-300'}`}
+                    ${st === 'ok' ? 'bg-emerald-500' : st === 'deficit' ? 'bg-red-500'
+                      : st === 'pending' && isPastMorningDeadline() ? 'bg-amber-400' : 'bg-gray-300'}`}
                   />
 
                   {/* Ward info */}
@@ -314,14 +316,25 @@ export default function DashboardPage() {
                       </span>
                     )}
                     {st === 'pending' && (
-                      <span className="inline-flex items-center gap-1 text-xs bg-gray-100
-                        text-gray-500 px-2.5 py-1 rounded-full font-medium">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                            d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
-                        </svg>
-                        ยังไม่ตรวจ
-                      </span>
+                      isPastMorningDeadline() ? (
+                        <span className="inline-flex items-center gap-1 text-xs bg-amber-100
+                          text-amber-700 px-2.5 py-1 rounded-full font-medium">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                              d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+                          </svg>
+                          ขาดการประเมินเวรเช้า
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-xs bg-gray-100
+                          text-gray-500 px-2.5 py-1 rounded-full font-medium">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                              d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                          </svg>
+                          ยังไม่ตรวจ
+                        </span>
+                      )
                     )}
 
                     {/* Tape status icon */}
