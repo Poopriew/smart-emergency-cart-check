@@ -326,7 +326,8 @@ export default function DashboardPage() {
 
                     {/* Tape status icon */}
                     {st !== 'pending' && ward.tape_status !== null && (
-                      <p className="text-xs mt-1 text-right">
+                      <p className={`text-xs mt-1 text-right font-medium
+                        ${ward.tape_status ? 'text-emerald-600' : 'text-red-500'}`}>
                         {ward.tape_status ? '🟢 สายคาด' : '🔴 ไม่มีสายคาด'}
                       </p>
                     )}
