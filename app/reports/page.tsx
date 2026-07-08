@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
-import { getWorkDateStr, enumerateDates, isLateSubmission } from '../dateUtils'
+import { getWorkDateStr, enumerateDates, isLateSubmission, isPastMorningDeadline } from '../dateUtils'
 
 interface Ward {
   id: string
@@ -17,7 +17,9 @@ interface WardStat {
   missedDays: number
   missedDates: string[]
   lateDays: number
+  lateDates: string[]
   deficitDays: number
+  deficitDates: string[]
   pct: number
 }
 
@@ -48,7 +50,11 @@ export default function ReportsPage() {
         endStr = todayWork > startStr ? todayWork : startStr
       }
 
-      const dateList = enumerateDates(startStr, endStr)
+      let dateList = enumerateDates(startStr, endStr)
+      // ถ้าวันสุดท้ายคือ "วันนี้" และยังไม่ถึง deadline 18:00 น. -> ยังไม่ถึงเวลาตัดสิน ตัดออกจากการนับ
+      if (dateList.length > 0 && dateList[dateList.length - 1] === todayWork && !isPastMorningDeadline()) {
+        dateList = dateList.slice(0, -1)
+      }
 
       const { data: wards } = await supabase
         .from('wards').select('id, ward_code, ward_name_th, ward_name_en')
@@ -76,10 +82,12 @@ export default function ReportsPage() {
         const wardChecks = (checks ?? []).filter(c => c.ward_id === ward.id)
         const checkedDates = new Set(wardChecks.map(c => c.check_date))
         const missedDates = dateList.filter(d => !checkedDates.has(d))
-        const lateDays = wardChecks.filter(c => isLateSubmission(c.submitted_at)).length
-        const deficitDaySet = new Set(
-          wardChecks.filter(c => deficitCheckIdSet.has(c.id)).map(c => c.check_date)
-        )
+        const lateDates = wardChecks
+          .filter(c => isLateSubmission(c.submitted_at))
+          .map(c => c.check_date)
+        const deficitDates = wardChecks
+          .filter(c => deficitCheckIdSet.has(c.id))
+          .map(c => c.check_date)
         const checkedDays = checkedDates.size
         const pct = dateList.length > 0 ? Math.round((checkedDays / dateList.length) * 100) : 0
         return {
@@ -87,8 +95,10 @@ export default function ReportsPage() {
           checkedDays,
           missedDays: missedDates.length,
           missedDates,
-          lateDays,
-          deficitDays: deficitDaySet.size,
+          lateDays: lateDates.length,
+          lateDates,
+          deficitDays: deficitDates.length,
+          deficitDates,
           pct,
         }
       })
@@ -159,7 +169,7 @@ export default function ReportsPage() {
           {/* BAR CHART */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-              % ความครบถ้วนการตรวจ (เรียงแย่สุดก่อน)
+              % ความครบถ้วนการตรวจ
             </p>
             <div className="space-y-2.5">
               {stats.map(s => (
@@ -212,10 +222,26 @@ export default function ReportsPage() {
                       )}
                     </div>
                   </button>
-                  {expandedWard === s.ward.id && s.missedDates.length > 0 && (
-                    <div className="mt-2 bg-red-50 border border-red-100 rounded-xl p-3">
-                      <p className="text-xs text-red-600 font-medium mb-1">วันที่ขาดตรวจ:</p>
-                      <p className="text-xs text-red-500">{s.missedDates.join(', ')}</p>
+                  {expandedWard === s.ward.id && (
+                    <div className="mt-2 space-y-2">
+                      {s.missedDates.length > 0 && (
+                        <div className="bg-red-50 border border-red-100 rounded-xl p-3">
+                          <p className="text-xs text-red-600 font-medium mb-1">วันที่ขาดตรวจ:</p>
+                          <p className="text-xs text-red-500">{s.missedDates.join(', ')}</p>
+                        </div>
+                      )}
+                      {s.lateDates.length > 0 && (
+                        <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
+                          <p className="text-xs text-amber-700 font-medium mb-1">วันที่ตรวจสาย (หลัง 18:00 น.):</p>
+                          <p className="text-xs text-amber-600">{s.lateDates.join(', ')}</p>
+                        </div>
+                      )}
+                      {s.deficitDates.length > 0 && (
+                        <div className="bg-orange-50 border border-orange-100 rounded-xl p-3">
+                          <p className="text-xs text-orange-700 font-medium mb-1">วันที่มีของไม่ครบ:</p>
+                          <p className="text-xs text-orange-600">{s.deficitDates.join(', ')}</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
