@@ -399,7 +399,10 @@ if (wardData) {
       <span className="font-medium text-gray-700">
         {checkInfo
           ? new Date(checkInfo.submitted_at ?? checkInfo.created_at)
-              .toLocaleDateString('th-TH')
+              .toLocaleString('th-TH', {
+                day: 'numeric', month: 'numeric', year: 'numeric',
+                hour: '2-digit', minute: '2-digit',
+              }) + ' น.'
           : '—'}
       </span>
     </div>
