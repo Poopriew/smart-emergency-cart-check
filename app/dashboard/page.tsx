@@ -169,7 +169,7 @@ export default function DashboardPage() {
         <a href="/reports"
           className="inline-flex items-center gap-1 text-xs bg-emerald-700 text-emerald-100
                      px-3 py-1.5 rounded-full mt-2">
-          📈 รายงานผู้บริหาร (รายเดือน) →
+          📈 รายงานสถิติรายเดือน →
         </a>
       </div>
 

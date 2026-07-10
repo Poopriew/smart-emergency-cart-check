@@ -143,7 +143,7 @@ export default function ReportsPage() {
             </svg>
           </a>
           <div>
-            <p className="text-xs opacity-70 uppercase tracking-wider">📈 รายงานผู้บริหาร</p>
+            <p className="text-xs opacity-70 uppercase tracking-wider">📈 รายงานสถิติรายเดือน</p>
             <p className="text-base font-medium">สรุปรายเดือน — {monthLabel}</p>
           </div>
         </div>
