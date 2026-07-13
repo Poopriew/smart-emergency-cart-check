@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../supabase'
 import { isPastMorningDeadline } from '../dateUtils'
+import { getLastWard } from '../wardStorage'
 
 interface WardSummary {
   ward_id: string
@@ -81,6 +82,7 @@ export default function DashboardPage() {
   const [lastUpdate, setLastUpdate] = useState(new Date())
   const [search, setSearch]     = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'ok' | 'deficit' | 'pending'>('all')
+  const [navWardCode, setNavWardCode] = useState('SGM1')
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
   async function fetchData() {
@@ -95,6 +97,7 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
+    setNavWardCode(getLastWard())
     fetchData()
 
     // ★ Realtime subscription
@@ -362,9 +365,9 @@ export default function DashboardPage() {
       {/* BOTTOM NAV */}
       <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto flex bg-white border-t border-gray-100 z-40 h-16">
         {[
-          { icon: '🏠', label: 'หน้าหลัก', href: '/' },
-          { icon: '📋', label: 'ตรวจเช็ค', href: '/check' },
-          { icon: '📄', label: 'สรุป',      href: '/summary' },
+          { icon: '🏠', label: 'หน้าหลัก', href: `/?ward=${navWardCode}` },
+          { icon: '📋', label: 'ตรวจเช็ค', href: `/check?ward=${navWardCode}` },
+          { icon: '📄', label: 'สรุป',      href: `/summary?ward=${navWardCode}` },
           { icon: '📊', label: 'แดชบอร์ด', href: '/dashboard', active: true },
         ].map(item => (
           <a key={item.href} href={item.href}
