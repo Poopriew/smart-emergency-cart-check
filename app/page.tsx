@@ -570,9 +570,9 @@ if (wardData) {
       {/* ===== BOTTOM NAV ===== */}
       <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto flex bg-white border-t border-gray-100 z-40 h-16">
         {[
-          { icon: '🏠', label: 'หน้าหลัก', href: '/', active: true },
-          { icon: '📋', label: 'ตรวจเช็ค', href: '/check', active: false },
-          { icon: '📄', label: 'สรุป', href: '/summary', active: false },
+          { icon: '🏠', label: 'หน้าหลัก', href: `/?ward=${ward?.ward_code ?? 'SGM1'}`, active: true },
+          { icon: '📋', label: 'ตรวจเช็ค', href: `/check?ward=${ward?.ward_code ?? 'SGM1'}`, active: false },
+          { icon: '📄', label: 'สรุป', href: `/summary?ward=${ward?.ward_code ?? 'SGM1'}`, active: false },
           { icon: '📊', label: 'แดชบอร์ด', href: '/dashboard', active: false },
         ].map(item => (
           <a key={item.href} href={item.href}

@@ -50,6 +50,7 @@ export default function SummaryPage() {
   const [error, setError]             = useState<string | null>(null)
   const [wardName, setWardName]       = useState('ICU 1')
   const [tapeUpdating, setTapeUpdating] = useState(false)
+  const [wardCode, setWardCode]       = useState('SGM1')
 
   const todayStr = getWorkDateStr()
 
@@ -60,6 +61,7 @@ export default function SummaryPage() {
         // โหลด ward
         const params = new URLSearchParams(window.location.search)
         const wCode = params.get('ward') || 'SGM1'
+        setWardCode(wCode)
         const { data: ward } = await supabase
          .from('wards').select('id, ward_name_th, ward_name_en')
           .eq('ward_code', wCode).single()
@@ -187,12 +189,12 @@ export default function SummaryPage() {
             <p className="text-gray-800 font-medium">ยังไม่มีข้อมูลการตรวจวันนี้</p>
             <p className="text-sm text-gray-400 mt-1">กรุณาตรวจเช็คก่อน แล้วค่อยดูสรุป</p>
           </div>
-          <a href="/check"
+          <a href={`/check?ward=${wardCode}`}
             className="bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium">
             ไปหน้าตรวจเช็ค →
           </a>
         </div>
-        <BottomNav />
+        <BottomNav wardCode={wardCode} />
       </div>
     )
   }
@@ -427,7 +429,7 @@ export default function SummaryPage() {
       )}
 
       {/* BOTTOM NAV */}
-      <BottomNav />
+      <BottomNav wardCode={wardCode} />
     </div>
   )
 }
@@ -457,13 +459,13 @@ function StatCard({ label, value, unit, color }:
   )
 }
 
-function BottomNav() {
+function BottomNav({ wardCode }: { wardCode: string }) {
   return (
     <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto flex bg-white border-t border-gray-100 z-40 h-16">
       {[
-        { icon: '🏠', label: 'หน้าหลัก', href: '/' },
-        { icon: '📋', label: 'ตรวจเช็ค', href: '/check' },
-        { icon: '📄', label: 'สรุป',      href: '/summary', active: true },
+        { icon: '🏠', label: 'หน้าหลัก', href: `/?ward=${wardCode}` },
+        { icon: '📋', label: 'ตรวจเช็ค', href: `/check?ward=${wardCode}` },
+        { icon: '📄', label: 'สรุป',      href: `/summary?ward=${wardCode}`, active: true },
         { icon: '📊', label: 'แดชบอร์ด', href: '/dashboard' },
       ].map(item => (
         <a key={item.href} href={item.href}

@@ -41,6 +41,7 @@ export default function CheckPage() {
   const [existingCheck, setExistingCheck] = useState<any>(null)
   const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false)
   const [refilledItems, setRefilledItems] = useState<Record<string, boolean>>({})
+  const [wardCode, setWardCode] = useState('SGM1')
 
   const todayStr = getWorkDateStr()
 
@@ -50,6 +51,7 @@ export default function CheckPage() {
       const params = new URLSearchParams(window.location.search)
       const wCode = params.get('ward') || 'SGM1'
       const isRefill = params.get('refill') === '1'
+      setWardCode(wCode)
 
       const { data: ward } = await supabase
         .from('wards')
@@ -472,9 +474,9 @@ export default function CheckPage() {
       {/* BOTTOM NAV */}
       <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto flex bg-white border-t border-gray-100 z-40 h-16">
         {[
-          { icon: '🏠', label: 'หน้าหลัก', href: '/' },
-          { icon: '📋', label: 'ตรวจเช็ค', href: '/check', active: true },
-          { icon: '📄', label: 'สรุป',      href: '/summary' },
+          { icon: '🏠', label: 'หน้าหลัก', href: `/?ward=${wardCode}` },
+          { icon: '📋', label: 'ตรวจเช็ค', href: `/check?ward=${wardCode}`, active: true },
+          { icon: '📄', label: 'สรุป',      href: `/summary?ward=${wardCode}` },
           { icon: '📊', label: 'แดชบอร์ด', href: '/dashboard' },
         ].map(item => (
           <a key={item.href} href={item.href}
