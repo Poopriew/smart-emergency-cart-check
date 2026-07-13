@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 import { getWorkDateStr } from '../dateUtils'
+import { saveLastWard } from '../wardStorage'
 
 interface CartItem {
   id: string
@@ -52,6 +53,7 @@ export default function CheckPage() {
       const wCode = params.get('ward') || 'SGM1'
       const isRefill = params.get('refill') === '1'
       setWardCode(wCode)
+      saveLastWard(wCode)
 
       const { data: ward } = await supabase
         .from('wards')

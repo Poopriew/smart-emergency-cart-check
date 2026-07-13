@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 import { getWorkDateStr } from './dateUtils'
+import { saveLastWard } from './wardStorage'
 
 // ---- Types ----
 interface Ward {
@@ -60,6 +61,7 @@ export default function SafeteTapePage() {
     async function load() {
       const params = new URLSearchParams(window.location.search)
       const wardCode = params.get('ward') || 'SGM1'
+      saveLastWard(wardCode)
       // โหลด ward แรก (ICU1) — production ใช้ auth user เลือก ward
       const { data: wardData } = await supabase
         .from('wards')

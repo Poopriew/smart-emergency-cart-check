@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 import { getWorkDateStr } from '../dateUtils'
+import { saveLastWard } from '../wardStorage'
 
 interface DeficitItem {
   item_name_en: string
@@ -62,6 +63,7 @@ export default function SummaryPage() {
         const params = new URLSearchParams(window.location.search)
         const wCode = params.get('ward') || 'SGM1'
         setWardCode(wCode)
+        saveLastWard(wCode)
         const { data: ward } = await supabase
          .from('wards').select('id, ward_name_th, ward_name_en')
           .eq('ward_code', wCode).single()
